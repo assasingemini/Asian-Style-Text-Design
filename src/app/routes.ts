@@ -12,7 +12,10 @@ import BlogPage from './pages/BlogPage';
 import BlogDetailPage from './pages/BlogDetailPage';
 import AccountPage from './pages/AccountPage';
 import AdminPage from './pages/AdminPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AboutPage from './pages/AboutPage';
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +23,7 @@ export const router = createBrowserRouter([
     Component: Root,
     children: [
       { index: true, Component: HomePage },
+      { path: 'about', Component: AboutPage },
       { path: 'shop', Component: ProductListPage },
       { path: 'shop/:id', Component: ProductDetailPage },
       { path: 'cart', Component: CartPage },
@@ -31,6 +35,8 @@ export const router = createBrowserRouter([
       { path: 'blog/:id', Component: BlogDetailPage },
       { path: 'account', Component: AccountPage },
       { path: 'admin', Component: AdminPage },
+      { path: 'login', Component: LoginPage },
+      { path: 'register', Component: RegisterPage },
       { path: '*', Component: NotFoundPage },
     ],
   },

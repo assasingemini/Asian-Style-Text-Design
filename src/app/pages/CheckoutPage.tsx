@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { ArrowLeft, ArrowRight, Check, CreditCard, Wallet, Building } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CreditCard, Wallet, Building, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
 import { formatPrice } from '../data/products';
@@ -22,7 +22,7 @@ const paymentMethods = [
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, cartTotal, discountAmount, clearCart, user, redeemPoints } = useApp();
+  const { cart, cartTotal, discountAmount, clearCart, user, redeemPoints, isLoggedIn, earnPoints } = useApp();
   const [step, setStep] = useState<Step>('shipping');
   const [usePoints, setUsePoints] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
@@ -62,9 +62,26 @@ export default function CheckoutPage() {
       redeemPoints(pointsToRedeem);
     }
     await new Promise(resolve => setTimeout(resolve, 1500));
+    // Earn points based on admin-configured tiers
+    earnPoints(finalTotal);
     clearCart();
     navigate('/checkout/confirm');
   };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen pt-16 flex items-center justify-center">
+        <div className="text-center">
+          <LogIn size={48} className="mx-auto mb-6 text-black/20" strokeWidth={1} />
+          <p className="font-['Cormorant_Garamond'] text-4xl mb-4">Vui lòng đăng nhập</p>
+          <p className="text-black/40 text-sm tracking-wide mb-10">Bạn cần đăng nhập để thanh toán.</p>
+          <Link to="/login" className="text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
+            Đăng nhập
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0 && step !== 'confirm') {
     return (

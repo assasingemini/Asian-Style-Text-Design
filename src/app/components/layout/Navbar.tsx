@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ShoppingBag, Heart, User, Menu, X, Search, Zap } from 'lucide-react';
+import { ShoppingBag, Heart, User, Menu, X, Search, Zap, LogIn, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { motion, AnimatePresence } from 'motion/react';
 
 const navLinks = [
   { label: 'Cửa hàng', href: '/shop' },
+  { label: 'Về chúng tôi', href: '/about' },
   { label: 'Flash Sale', href: '/flash-sale' },
   { label: 'Ưu đãi', href: '/rewards' },
   { label: 'Tạp chí', href: '/blog' },
 ];
 
 export function Navbar() {
-  const { cartCount, wishlist, isLoggedIn } = useApp();
+  const { cartCount, wishlist, isLoggedIn, isAdmin, user } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -21,7 +22,8 @@ export function Navbar() {
   const navigate = useNavigate();
 
   const isHome = location.pathname === '/';
-  const isAdmin = location.pathname.startsWith('/admin');
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -43,7 +45,7 @@ export function Navbar() {
     }
   };
 
-  if (isAdmin) return null;
+  if (isAdminPage || isAuthPage) return null;
 
   const navBg = scrolled || !isHome
     ? 'bg-white border-b border-black/10'
@@ -85,31 +87,79 @@ export function Navbar() {
               <Search size={18} />
             </button>
 
-            <Link to="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
-              <Heart size={18} />
-              {wishlist.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-                  {wishlist.length}
-                </span>
-              )}
-            </Link>
+            {isLoggedIn ? (
+              <>
+                {/* Admin link */}
+                {isAdmin && (
+                  <Link to="/admin" className={`${textColor} transition-all duration-300 hover:opacity-60`} title="Quản trị">
+                    <Settings size={18} />
+                  </Link>
+                )}
 
-            <Link to="/account" className={`${textColor} transition-all duration-300 hover:opacity-60`}>
-              <User size={18} />
-            </Link>
+                {/* Wishlist */}
+                <Link to="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
+                  <Heart size={18} />
+                  {wishlist.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+                      {wishlist.length}
+                    </span>
+                  )}
+                </Link>
 
-            <Link to="/cart" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
-              <ShoppingBag size={18} />
-              {cartCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center"
+                {/* User */}
+                <Link to="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
+                  {user?.avatar ? (
+                    <div className="w-6 h-6 rounded-full overflow-hidden border border-current/20">
+                      <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <User size={18} />
+                  )}
+                </Link>
+
+                {/* Cart */}
+                <Link to="/cart" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
+                  <ShoppingBag size={18} />
+                  {cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center"
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </Link>
+              </>
+            ) : (
+              <>
+                {/* Login & Register buttons */}
+                <Link
+                  to="/login"
+                  className={`hidden md:flex items-center gap-1.5 text-xs tracking-[0.15em] uppercase ${textColor} transition-all duration-300 hover:opacity-60`}
                 >
-                  {cartCount}
-                </motion.span>
-              )}
-            </Link>
+                  <LogIn size={14} />
+                  Đăng nhập
+                </Link>
+                <Link
+                  to="/register"
+                  className={`hidden md:flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase px-4 py-2 transition-all duration-300 ${
+                    scrolled || !isHome
+                      ? 'bg-black text-white hover:bg-black/90'
+                      : 'bg-white text-black hover:bg-white/90'
+                  }`}
+                >
+                  Đăng ký
+                </Link>
+                {/* Mobile: single login icon */}
+                <Link
+                  to="/login"
+                  className={`md:hidden ${textColor} transition-all duration-300 hover:opacity-60`}
+                >
+                  <LogIn size={18} />
+                </Link>
+              </>
+            )}
 
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -169,12 +219,30 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link to="/account" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
-                Tài khoản
-              </Link>
-              <Link to="/cart" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
-                Giỏ hàng ({cartCount})
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link to="/account" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                    Tài khoản
+                  </Link>
+                  <Link to="/cart" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                    Giỏ hàng ({cartCount})
+                  </Link>
+                  {isAdmin && (
+                    <Link to="/admin" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                      Quản trị
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                    Đăng nhập
+                  </Link>
+                  <Link to="/register" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                    Đăng ký
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="mt-auto mb-12 pt-8 border-t border-white/20">

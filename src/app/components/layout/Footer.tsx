@@ -74,7 +74,7 @@ export function Footer() {
           <p className="text-xs tracking-[0.25em] uppercase mb-5 text-white/60">Hỗ trợ</p>
           <ul className="flex flex-col gap-3">
             {[
-              { label: 'Về chúng tôi', path: '/' },
+              { label: 'Về chúng tôi', path: '/about' },
               { label: 'Chính sách vận chuyển', path: '/' },
               { label: 'Đổi trả & Hoàn tiền', path: '/' },
               { label: 'Hướng dẫn chọn size', path: '/' },

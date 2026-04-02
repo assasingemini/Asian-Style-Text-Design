@@ -6,6 +6,7 @@ import { Notification } from '../components/ui/Notification';
 export default function Root() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
+  const isAuth = location.pathname === '/login' || location.pathname === '/register';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -13,7 +14,7 @@ export default function Root() {
       <main className="flex-1">
         <Outlet />
       </main>
-      {!isAdmin && <Footer />}
+      {!isAdmin && !isAuth && <Footer />}
       <Notification />
     </div>
   );

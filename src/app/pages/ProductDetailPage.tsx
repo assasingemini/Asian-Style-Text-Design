@@ -10,7 +10,7 @@ import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, toggleWishlist, wishlist } = useApp();
+  const { addToCart, toggleWishlist, wishlist, isLoggedIn } = useApp();
 
   const product = products.find(p => p.id === id);
   const productReviews = reviews.filter(r => r.productId === id);
@@ -40,15 +40,17 @@ export default function ProductDetailPage() {
   const displayPrice = product.isFlashSale && product.flashSalePrice ? product.flashSalePrice : product.price;
 
   const handleAddToCart = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
     if (!selectedSize) { setSizeError(true); return; }
-    addToCart(product, selectedSize, selectedColor || product.colors[0], quantity);
-    setSizeError(false);
+    const success = addToCart(product, selectedSize, selectedColor || product.colors[0], quantity);
+    if (success) setSizeError(false);
   };
 
   const handleBuyNow = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
     if (!selectedSize) { setSizeError(true); return; }
-    addToCart(product, selectedSize, selectedColor || product.colors[0], quantity);
-    navigate('/cart');
+    const success = addToCart(product, selectedSize, selectedColor || product.colors[0], quantity);
+    if (success) navigate('/cart');
   };
 
   const getColorTranslation = (color: string) => {

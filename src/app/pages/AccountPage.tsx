@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { User, Package, Heart, Award, Settings, LogOut, ArrowRight, Star, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
@@ -24,8 +24,9 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function AccountPage() {
-  const { user, orders, wishlist, toggleWishlist, logout, isLoggedIn, login } = useApp();
+  const { user, orders, wishlist, toggleWishlist, logout, isLoggedIn } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const navigate = useNavigate();
   const wishlistProducts = products.filter(p => wishlist.includes(p.id));
 
   if (!isLoggedIn) {
@@ -36,19 +37,14 @@ export default function AccountPage() {
           <h1 className="font-['Cormorant_Garamond'] text-4xl mb-4">Đăng nhập</h1>
           <p className="text-black/50 text-sm tracking-wide mb-10">Đăng nhập để xem đơn hàng, danh sách yêu thích và điểm thưởng.</p>
 
-          <div className="space-y-4 mb-8">
-            <input type="email" placeholder="Địa chỉ Email" className="w-full border border-black/20 px-5 py-3 text-sm outline-none focus:border-black transition-colors tracking-wide" />
-            <input type="password" placeholder="Mật khẩu" className="w-full border border-black/20 px-5 py-3 text-sm outline-none focus:border-black transition-colors tracking-wide" />
-          </div>
-
-          <button
-            onClick={login}
-            className="w-full bg-black text-white text-xs tracking-[0.25em] uppercase py-4 hover:bg-black/90 transition-all mb-4"
+          <Link
+            to="/login"
+            className="w-full inline-block bg-black text-white text-xs tracking-[0.25em] uppercase py-4 hover:bg-black/90 transition-all mb-4"
           >
             Đăng nhập
-          </button>
+          </Link>
           <p className="text-xs text-black/40 tracking-wide">
-            Bản demo: Nhấn Đăng nhập để xem trang cá nhân
+            Chưa có tài khoản? <Link to="/register" className="text-black underline underline-offset-4">Đăng ký ngay</Link>
           </p>
         </div>
       </div>

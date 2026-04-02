@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Minus, Plus, Trash2, ArrowRight, Tag, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowRight, Tag, ShoppingBag, ArrowLeft, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
 import { formatPrice } from '../data/products';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart, cartTotal, discountCode, discountAmount, applyDiscount } = useApp();
+  const { cart, updateQuantity, removeFromCart, cartTotal, discountCode, discountAmount, applyDiscount, isLoggedIn } = useApp();
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
   const navigate = useNavigate();
@@ -22,6 +22,27 @@ export default function CartPage() {
     if (!success) setCouponError('Mã giảm giá không hợp lệ hoặc đã hết hạn');
     else setCouponError('');
   };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen pt-16 flex items-center justify-center bg-white">
+        <div className="text-center px-6">
+          <LogIn size={48} className="mx-auto mb-6 text-black/20" strokeWidth={1} />
+          <p className="font-['Cormorant_Garamond'] text-4xl mb-4">Vui lòng đăng nhập</p>
+          <p className="text-black/40 text-sm tracking-wide mb-10">Bạn cần đăng nhập để xem giỏ hàng và mua sắm.</p>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group"
+          >
+            Đăng nhập <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+          </Link>
+          <p className="mt-4 text-xs text-black/30 tracking-wide">
+            Chưa có tài khoản? <Link to="/register" className="text-black underline">Đăng ký ngay</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (

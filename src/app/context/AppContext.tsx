@@ -17,6 +17,8 @@ export interface User {
   tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   joinDate: string;
   totalOrders: number;
+  role: 'customer' | 'admin';
+  password: string;
 }
 
 export interface Order {
@@ -26,6 +28,25 @@ export interface Order {
   items: CartItem[];
   total: number;
   tracking?: string;
+  pointsEarned?: number;
+}
+
+export interface PointsRule {
+  id: string;
+  minPrice: number;
+  maxPrice: number;
+  pointsPerUnit: number; // points per 1000 VND in this range
+}
+
+export interface RewardItem {
+  id: string;
+  name: string;
+  points: number;
+  type: 'voucher' | 'shipping' | 'gift' | 'product';
+  value: number;
+  description: string;
+  active: boolean;
+  image?: string;
 }
 
 interface AppContextType {
@@ -34,10 +55,13 @@ interface AppContextType {
   user: User | null;
   orders: Order[];
   isLoggedIn: boolean;
+  isAdmin: boolean;
   discountCode: string;
   discountAmount: number;
   notification: { message: string; type: 'success' | 'error' | 'info' } | null;
-  addToCart: (product: Product, size: string, color: string, quantity?: number) => void;
+  pointsConfig: PointsRule[];
+  rewardItems: RewardItem[];
+  addToCart: (product: Product, size: string, color: string, quantity?: number) => boolean;
   removeFromCart: (productId: string, size: string, color: string) => void;
   updateQuantity: (productId: string, size: string, color: string, quantity: number) => void;
   clearCart: () => void;
@@ -46,46 +70,57 @@ interface AppContextType {
   cartTotal: number;
   cartCount: number;
   showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
-  login: () => void;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
+  register: (name: string, email: string, password: string) => boolean;
   redeemPoints: (points: number) => boolean;
+  earnPoints: (orderTotal: number) => number;
+  updatePointsConfig: (config: PointsRule[]) => void;
+  addRewardItem: (item: Omit<RewardItem, 'id'>) => void;
+  updateRewardItem: (id: string, item: Partial<RewardItem>) => void;
+  deleteRewardItem: (id: string) => void;
 }
 
-const mockUser: User = {
-  id: "u001",
-  name: "Linh Nguyễn",
-  email: "linh.nguyen@example.com",
-  avatar: "https://images.unsplash.com/photo-1732209988927-396f5103ede8?w=100&h=100&fit=crop",
-  points: 2450,
-  tier: 'Silver',
-  joinDate: "2025-06-15",
-  totalOrders: 12
+const STORAGE_KEYS = {
+  USERS: 'kumo_users',
+  CURRENT_USER: 'kumo_current_user',
+  ORDERS: 'kumo_orders',
+  POINTS_CONFIG: 'kumo_points_config',
+  REWARDS: 'kumo_rewards',
+  CART: 'kumo_cart',
+  WISHLIST: 'kumo_wishlist',
 };
 
-const mockOrders: Order[] = [
-  {
-    id: "ORD-2026-0312",
-    date: "2026-03-12",
-    status: "Đã giao",
-    items: [],
-    total: 478000,
-    tracking: "VN123456789"
-  },
-  {
-    id: "ORD-2026-0228",
-    date: "2026-02-28",
-    status: "Đã giao",
-    items: [],
-    total: 289000
-  },
-  {
-    id: "ORD-2026-0315",
-    date: "2026-03-15",
-    status: "Đang giao",
-    items: [],
-    total: 359000,
-    tracking: "VN987654321"
-  }
+// Default admin user
+const defaultAdmin: User = {
+  id: 'admin-001',
+  name: 'KUMO Admin',
+  email: 'admin@kumo.vn',
+  avatar: '',
+  points: 0,
+  tier: 'Platinum',
+  joinDate: '2024-01-01',
+  totalOrders: 0,
+  role: 'admin',
+  password: 'admin123',
+};
+
+// Default points config
+const defaultPointsConfig: PointsRule[] = [
+  { id: 'pr1', minPrice: 0, maxPrice: 200000, pointsPerUnit: 1 },
+  { id: 'pr2', minPrice: 200001, maxPrice: 500000, pointsPerUnit: 2 },
+  { id: 'pr3', minPrice: 500001, maxPrice: 1000000, pointsPerUnit: 3 },
+  { id: 'pr4', minPrice: 1000001, maxPrice: 999999999, pointsPerUnit: 5 },
+];
+
+// Default rewards
+const defaultRewards: RewardItem[] = [
+  { id: 'r1', name: 'Giảm giá 50.000 VNĐ', points: 500, type: 'voucher', value: 50000, description: 'Voucher giảm giá trực tiếp', active: true },
+  { id: 'r2', name: 'Giảm giá 100.000 VNĐ', points: 900, type: 'voucher', value: 100000, description: 'Voucher giảm giá trực tiếp', active: true },
+  { id: 'r3', name: 'Mã miễn phí vận chuyển', points: 300, type: 'shipping', value: 30000, description: 'Miễn phí vận chuyển cho đơn hàng tiếp theo', active: true },
+  { id: 'r4', name: 'Giảm giá 200.000 VNĐ', points: 1700, type: 'voucher', value: 200000, description: 'Voucher giảm giá trực tiếp', active: true },
+  { id: 'r5', name: 'Hộp quà bí mật', points: 2000, type: 'gift', value: 0, description: 'Nhận một hộp quà bất ngờ từ KUMO', active: true },
+  { id: 'r6', name: 'Thẻ truy cập sớm', points: 1000, type: 'product', value: 0, description: 'Truy cập sớm các bộ sưu tập mới', active: true },
 ];
 
 const DISCOUNT_CODES: Record<string, number> = {
@@ -95,17 +130,89 @@ const DISCOUNT_CODES: Record<string, number> = {
   "LOYAL15": 15,
 };
 
+function getFromStorage<T>(key: string, defaultValue: T): T {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function setToStorage<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch { /* ignore */ }
+}
+
+function computeTier(points: number): 'Bronze' | 'Silver' | 'Gold' | 'Platinum' {
+  if (points >= 10000) return 'Platinum';
+  if (points >= 5000) return 'Gold';
+  if (points >= 1000) return 'Silver';
+  return 'Bronze';
+}
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [user, setUser] = useState<User | null>(mockUser);
-  const [orders] = useState<Order[]>(mockOrders);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [pointsConfig, setPointsConfig] = useState<PointsRule[]>(defaultPointsConfig);
+  const [rewardItems, setRewardItems] = useState<RewardItem[]>(defaultRewards);
+  const [initialized, setInitialized] = useState(false);
+
+  // Initialize from localStorage
+  useEffect(() => {
+    // Initialize default admin in users store
+    const storedUsers = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
+    if (!storedUsers.find(u => u.email === 'admin@kumo.vn')) {
+      setToStorage(STORAGE_KEYS.USERS, [...storedUsers, defaultAdmin]);
+    }
+
+    // Load current user session
+    const currentUser = getFromStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (currentUser) {
+      setUser(currentUser);
+      setIsLoggedIn(true);
+    }
+
+    // Load other state
+    setCart(getFromStorage(STORAGE_KEYS.CART, []));
+    setWishlist(getFromStorage(STORAGE_KEYS.WISHLIST, []));
+    setOrders(getFromStorage(STORAGE_KEYS.ORDERS, []));
+    setPointsConfig(getFromStorage(STORAGE_KEYS.POINTS_CONFIG, defaultPointsConfig));
+    setRewardItems(getFromStorage(STORAGE_KEYS.REWARDS, defaultRewards));
+    setInitialized(true);
+  }, []);
+
+  // Persist cart
+  useEffect(() => {
+    if (initialized) setToStorage(STORAGE_KEYS.CART, cart);
+  }, [cart, initialized]);
+
+  // Persist wishlist
+  useEffect(() => {
+    if (initialized) setToStorage(STORAGE_KEYS.WISHLIST, wishlist);
+  }, [wishlist, initialized]);
+
+  // Persist orders
+  useEffect(() => {
+    if (initialized) setToStorage(STORAGE_KEYS.ORDERS, orders);
+  }, [orders, initialized]);
+
+  const isAdmin = user?.role === 'admin';
 
   const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ message, type });
@@ -121,7 +228,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const addToCart = useCallback((product: Product, size: string, color: string, quantity = 1) => {
+  // AUTH
+  const login = useCallback((email: string, password: string): boolean => {
+    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
+    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (found) {
+      // Refresh tier based on current points
+      found.tier = computeTier(found.points);
+      setUser(found);
+      setIsLoggedIn(true);
+      setToStorage(STORAGE_KEYS.CURRENT_USER, found);
+      showNotification(`Chào mừng trở lại, ${found.name}!`, 'success');
+      return true;
+    }
+    return false;
+  }, [showNotification]);
+
+  const register = useCallback((name: string, email: string, password: string): boolean => {
+    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return false; // email already exists
+    }
+
+    const newUser: User = {
+      id: generateId(),
+      name,
+      email,
+      avatar: '',
+      points: 0,
+      tier: 'Bronze',
+      joinDate: new Date().toISOString().split('T')[0],
+      totalOrders: 0,
+      role: email.toLowerCase() === 'admin@kumo.vn' ? 'admin' : 'customer',
+      password,
+    };
+
+    const updatedUsers = [...users, newUser];
+    setToStorage(STORAGE_KEYS.USERS, updatedUsers);
+    setUser(newUser);
+    setIsLoggedIn(true);
+    setToStorage(STORAGE_KEYS.CURRENT_USER, newUser);
+    showNotification(`Chào mừng ${name} đến với KUMO!`, 'success');
+    return true;
+  }, [showNotification]);
+
+  const logout = useCallback(() => {
+    setUser(null);
+    setIsLoggedIn(false);
+    setToStorage(STORAGE_KEYS.CURRENT_USER, null);
+    showNotification('Đã đăng xuất thành công', 'info');
+  }, [showNotification]);
+
+  // Update user in both state and storage
+  const persistUser = useCallback((updatedUser: User) => {
+    setUser(updatedUser);
+    setToStorage(STORAGE_KEYS.CURRENT_USER, updatedUser);
+    // Also update in users store
+    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
+    const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    setToStorage(STORAGE_KEYS.USERS, updatedUsers);
+  }, []);
+
+  // CART
+  const addToCart = useCallback((product: Product, size: string, color: string, quantity = 1): boolean => {
+    if (!isLoggedIn) {
+      showNotification('Vui lòng đăng nhập để mua hàng', 'error');
+      return false;
+    }
     setCart(prev => {
       const existing = prev.find(
         item => item.product.id === product.id && item.size === size && item.color === color
@@ -136,7 +309,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return [...prev, { product, size, color, quantity }];
     });
     showNotification(`${product.name} đã được thêm vào giỏ hàng`, 'success');
-  }, [showNotification]);
+    return true;
+  }, [showNotification, isLoggedIn]);
 
   const removeFromCart = useCallback((productId: string, size: string, color: string) => {
     setCart(prev => prev.filter(
@@ -187,28 +361,79 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return false;
   }, [showNotification]);
 
-  const login = useCallback(() => {
-    setUser(mockUser);
-    setIsLoggedIn(true);
-    showNotification('Chào mừng trở lại, Linh!', 'success');
-  }, [showNotification]);
+  // POINTS SYSTEM
+  const earnPoints = useCallback((orderTotal: number): number => {
+    if (!user) return 0;
+    const config = getFromStorage<PointsRule[]>(STORAGE_KEYS.POINTS_CONFIG, defaultPointsConfig);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setIsLoggedIn(false);
-    showNotification('Đã đăng xuất thành công', 'info');
-  }, [showNotification]);
+    // Find the matching price tier
+    const rule = config.find(r => orderTotal >= r.minPrice && orderTotal <= r.maxPrice);
+    const pointsPerUnit = rule ? rule.pointsPerUnit : 1;
+
+    // Calculate points: pointsPerUnit per 1000 VND
+    const earned = Math.floor(orderTotal / 1000) * pointsPerUnit;
+
+    const updatedUser = {
+      ...user,
+      points: user.points + earned,
+      tier: computeTier(user.points + earned),
+      totalOrders: user.totalOrders + 1,
+    };
+    persistUser(updatedUser);
+
+    showNotification(`Bạn nhận được ${earned} điểm từ đơn hàng này!`, 'success');
+    return earned;
+  }, [user, persistUser, showNotification]);
 
   const redeemPoints = useCallback((points: number): boolean => {
-    setUser(prev => {
-      if (prev && prev.points >= points) {
-        showNotification(`${points} điểm đã được đổi thành công!`, 'success');
-        return { ...prev, points: prev.points - points };
-      }
+    if (!user || user.points < points) {
       showNotification('Không đủ điểm', 'error');
-      return prev;
-    });
+      return false;
+    }
+    const updatedUser = {
+      ...user,
+      points: user.points - points,
+      tier: computeTier(user.points - points),
+    };
+    persistUser(updatedUser);
+    showNotification(`${points} điểm đã được đổi thành công!`, 'success');
     return true;
+  }, [user, persistUser, showNotification]);
+
+  // ADMIN: Points Config
+  const updatePointsConfig = useCallback((config: PointsRule[]) => {
+    setPointsConfig(config);
+    setToStorage(STORAGE_KEYS.POINTS_CONFIG, config);
+    showNotification('Đã cập nhật cấu hình điểm thưởng', 'success');
+  }, [showNotification]);
+
+  // ADMIN: Rewards CRUD
+  const addRewardItem = useCallback((item: Omit<RewardItem, 'id'>) => {
+    const newItem: RewardItem = { ...item, id: generateId() };
+    setRewardItems(prev => {
+      const updated = [...prev, newItem];
+      setToStorage(STORAGE_KEYS.REWARDS, updated);
+      return updated;
+    });
+    showNotification('Đã thêm phần thưởng mới', 'success');
+  }, [showNotification]);
+
+  const updateRewardItem = useCallback((id: string, updates: Partial<RewardItem>) => {
+    setRewardItems(prev => {
+      const updated = prev.map(item => item.id === id ? { ...item, ...updates } : item);
+      setToStorage(STORAGE_KEYS.REWARDS, updated);
+      return updated;
+    });
+    showNotification('Đã cập nhật phần thưởng', 'success');
+  }, [showNotification]);
+
+  const deleteRewardItem = useCallback((id: string) => {
+    setRewardItems(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      setToStorage(STORAGE_KEYS.REWARDS, updated);
+      return updated;
+    });
+    showNotification('Đã xóa phần thưởng', 'info');
   }, [showNotification]);
 
   return (
@@ -218,9 +443,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user,
       orders,
       isLoggedIn,
+      isAdmin,
       discountCode,
       discountAmount,
       notification,
+      pointsConfig,
+      rewardItems,
       addToCart,
       removeFromCart,
       updateQuantity,
@@ -232,7 +460,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showNotification,
       login,
       logout,
+      register,
       redeemPoints,
+      earnPoints,
+      updatePointsConfig,
+      addRewardItem,
+      updateRewardItem,
+      deleteRewardItem,
     }}>
       {children}
     </AppContext.Provider>
