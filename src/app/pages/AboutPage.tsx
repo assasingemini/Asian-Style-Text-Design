@@ -195,6 +195,98 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* ===== FOUNDER ===== */}
+      <section className="bg-black py-20 md:py-28 relative overflow-hidden">
+        {/* Subtle glow */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-white blur-3xl" />
+        </div>
+
+        <div className="relative max-w-[1440px] mx-auto px-6 md:px-12">
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-[10px] tracking-[0.4em] uppercase text-white/30 mb-4">Người sáng lập</p>
+              <h2 className="font-['Cormorant_Garamond'] text-white text-4xl md:text-5xl">Đằng sau KUMO</h2>
+            </div>
+          </Reveal>
+
+          <div className="grid md:grid-cols-5 gap-12 md:gap-16 items-center">
+            {/* Portrait */}
+            <Reveal className="md:col-span-2">
+              <div className="relative mx-auto max-w-sm">
+                <div className="overflow-hidden aspect-[3/4]">
+                  <ImageWithFallback
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMG1hbiUyMHBvcnRyYWl0JTIwbWluaW1hbHxlbnwxfHx8fDE3NDM1NjU2MDB8MA&ixlib=rb-4.1.0&q=80&w=600"
+                    alt="Trần Minh Khôi — Nhà sáng lập KUMO"
+                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                  />
+                </div>
+                {/* Name overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                  <p className="font-['Cormorant_Garamond'] text-white text-2xl">Trần Minh Khôi</p>
+                  <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase">Nhà sáng lập & Giám đốc Sáng tạo</p>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Story */}
+            <Reveal delay={0.2} className="md:col-span-3">
+              <div>
+                <div className="space-y-5 text-white/50 text-sm leading-relaxed tracking-wide">
+                  <p>
+                    Sinh năm 1992 tại TP. Hồ Chí Minh, <span className="text-white/80">Trần Minh Khôi</span> lớn lên trong một gia đình 
+                    có ba thế hệ làm nghề may. Từ nhỏ, anh đã được bao quanh bởi tiếng máy may và mùi vải mới 
+                    — những ký ức đã gieo mầm cho niềm đam mê thời trang suốt đời.
+                  </p>
+                  <p>
+                    Sau khi tốt nghiệp ngành Thiết kế Thời trang tại Đại học Mỹ thuật TP.HCM, Khôi dành 3 năm 
+                    làm việc tại Tokyo, nơi anh được đắm chìm trong triết lý thẩm mỹ tối giản của Nhật Bản. 
+                    Chính tại đây, ý tưởng về KUMO được hình thành — kết hợp kỹ nghệ thủ công Việt Nam 
+                    với tư duy thiết kế Wabi-Sabi.
+                  </p>
+                  <p>
+                    Năm 2020, giữa đại dịch, Khôi quyết định quay về Sài Gòn và thành lập KUMO trong một xưởng 
+                    nhỏ 20m² tại Quận 3. Với chỉ 2 thợ may và một cái máy in lụa cũ, anh bắt đầu tạo ra 
+                    những thiết kế đầu tiên mang triết lý &ldquo;ít hơn là nhiều hơn&rdquo;.
+                  </p>
+                  <p>
+                    Ngày nay, với đội ngũ hơn 50 nghệ nhân và nhà thiết kế, Khôi vẫn trực tiếp giám sát 
+                    từng bộ sưu tập, đảm bảo mỗi sản phẩm KUMO đều mang hơi thở của người sáng lập 
+                    — sự tĩnh lặng có chủ đích, nơi mỗi đường may đều kể một câu chuyện.
+                  </p>
+                </div>
+
+                {/* Founder quote */}
+                <div className="mt-10 pt-8 border-t border-white/10">
+                  <blockquote>
+                    <p className="font-['Cormorant_Garamond'] text-white/70 text-xl md:text-2xl italic leading-relaxed mb-4">
+                      &ldquo;Tôi không thiết kế quần áo. Tôi thiết kế khoảng không giữa con người và sự tự do của họ.&rdquo;
+                    </p>
+                    <footer className="text-white/30 text-[10px] tracking-[0.3em] uppercase">
+                      — Trần Minh Khôi
+                    </footer>
+                  </blockquote>
+                </div>
+
+                {/* Founder highlights */}
+                <div className="grid grid-cols-3 gap-6 mt-10">
+                  {[
+                    { label: 'Năm kinh nghiệm', value: '10+' },
+                    { label: 'BST đã ra mắt', value: '12' },
+                    { label: 'Giải thưởng', value: '8' },
+                  ].map((item) => (
+                    <div key={item.label} className="text-center">
+                      <p className="font-['Cormorant_Garamond'] text-white text-3xl mb-1">{item.value}</p>
+                      <p className="text-white/30 text-[9px] tracking-[0.2em] uppercase">{item.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* ===== CORE VALUES ===== */}
       <section className="bg-[#F8F6F2] py-20 md:py-28">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12">
