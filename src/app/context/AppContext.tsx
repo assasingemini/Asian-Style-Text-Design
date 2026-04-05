@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product } from '../data/products';
+import { AboutContent, defaultAboutContent } from '../data/aboutDefaults';
 
 export interface CartItem {
   product: Product;
@@ -14,7 +15,6 @@ export interface User {
   email: string;
   avatar: string;
   points: number;
-  tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   joinDate: string;
   totalOrders: number;
   role: 'customer' | 'admin';
@@ -33,9 +33,8 @@ export interface Order {
 
 export interface PointsRule {
   id: string;
-  minPrice: number;
-  maxPrice: number;
-  pointsPerUnit: number; // points per 1000 VND in this range
+  minPrice: number; // product price threshold (VND)
+  points: number;   // fixed points earned when product price >= minPrice
 }
 
 export interface RewardItem {
@@ -49,6 +48,8 @@ export interface RewardItem {
   image?: string;
 }
 
+export type { AboutContent };
+
 interface AppContextType {
   cart: CartItem[];
   wishlist: string[];
@@ -61,6 +62,8 @@ interface AppContextType {
   notification: { message: string; type: 'success' | 'error' | 'info' } | null;
   pointsConfig: PointsRule[];
   rewardItems: RewardItem[];
+  aboutContent: AboutContent;
+  updateAboutContent: (content: Partial<AboutContent>) => void;
   addToCart: (product: Product, size: string, color: string, quantity?: number) => boolean;
   removeFromCart: (productId: string, size: string, color: string) => void;
   updateQuantity: (productId: string, size: string, color: string, quantity: number) => void;
@@ -74,7 +77,7 @@ interface AppContextType {
   logout: () => void;
   register: (name: string, email: string, password: string) => boolean;
   redeemPoints: (points: number) => boolean;
-  earnPoints: (orderTotal: number) => number;
+  earnPoints: (orderTotal: number, cartItems?: CartItem[]) => number;
   updatePointsConfig: (config: PointsRule[]) => void;
   addRewardItem: (item: Omit<RewardItem, 'id'>) => void;
   updateRewardItem: (id: string, item: Partial<RewardItem>) => void;
@@ -89,6 +92,7 @@ const STORAGE_KEYS = {
   REWARDS: 'kumo_rewards',
   CART: 'kumo_cart',
   WISHLIST: 'kumo_wishlist',
+  ABOUT: 'kumo_about',
 };
 
 // Default admin user
@@ -98,7 +102,6 @@ const defaultAdmin: User = {
   email: 'admin@kumo.vn',
   avatar: '',
   points: 0,
-  tier: 'Platinum',
   joinDate: '2024-01-01',
   totalOrders: 0,
   role: 'admin',
@@ -107,10 +110,10 @@ const defaultAdmin: User = {
 
 // Default points config
 const defaultPointsConfig: PointsRule[] = [
-  { id: 'pr1', minPrice: 0, maxPrice: 200000, pointsPerUnit: 1 },
-  { id: 'pr2', minPrice: 200001, maxPrice: 500000, pointsPerUnit: 2 },
-  { id: 'pr3', minPrice: 500001, maxPrice: 1000000, pointsPerUnit: 3 },
-  { id: 'pr4', minPrice: 1000001, maxPrice: 999999999, pointsPerUnit: 5 },
+  { id: 'pr1', minPrice: 100000, points: 10 },
+  { id: 'pr2', minPrice: 200000, points: 15 },
+  { id: 'pr3', minPrice: 500000, points: 30 },
+  { id: 'pr4', minPrice: 1000000, points: 60 },
 ];
 
 // Default rewards
@@ -147,11 +150,12 @@ function setToStorage<T>(key: string, value: T): void {
   } catch { /* ignore */ }
 }
 
-function computeTier(points: number): 'Bronze' | 'Silver' | 'Gold' | 'Platinum' {
-  if (points >= 10000) return 'Platinum';
-  if (points >= 5000) return 'Gold';
-  if (points >= 1000) return 'Silver';
-  return 'Bronze';
+// Helper: find matching points for a product price
+function getPointsForPrice(price: number, config: PointsRule[]): number {
+  // Sort descending by minPrice, find the first (highest) threshold that the price meets
+  const sorted = [...config].sort((a, b) => b.minPrice - a.minPrice);
+  const match = sorted.find(rule => price >= rule.minPrice);
+  return match ? match.points : 0;
 }
 
 function generateId(): string {
@@ -171,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [pointsConfig, setPointsConfig] = useState<PointsRule[]>(defaultPointsConfig);
   const [rewardItems, setRewardItems] = useState<RewardItem[]>(defaultRewards);
+  const [aboutContent, setAboutContent] = useState<AboutContent>(defaultAboutContent);
   const [initialized, setInitialized] = useState(false);
 
   // Initialize from localStorage
@@ -194,6 +199,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(getFromStorage(STORAGE_KEYS.ORDERS, []));
     setPointsConfig(getFromStorage(STORAGE_KEYS.POINTS_CONFIG, defaultPointsConfig));
     setRewardItems(getFromStorage(STORAGE_KEYS.REWARDS, defaultRewards));
+    setAboutContent(getFromStorage(STORAGE_KEYS.ABOUT, defaultAboutContent));
     setInitialized(true);
   }, []);
 
@@ -233,8 +239,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
     const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (found) {
-      // Refresh tier based on current points
-      found.tier = computeTier(found.points);
       setUser(found);
       setIsLoggedIn(true);
       setToStorage(STORAGE_KEYS.CURRENT_USER, found);
@@ -256,7 +260,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       email,
       avatar: '',
       points: 0,
-      tier: 'Bronze',
       joinDate: new Date().toISOString().split('T')[0],
       totalOrders: 0,
       role: email.toLowerCase() === 'admin@kumo.vn' ? 'admin' : 'customer',
@@ -362,21 +365,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [showNotification]);
 
   // POINTS SYSTEM
-  const earnPoints = useCallback((orderTotal: number): number => {
+  const earnPoints = useCallback((orderTotal: number, cartItems?: CartItem[]): number => {
     if (!user) return 0;
     const config = getFromStorage<PointsRule[]>(STORAGE_KEYS.POINTS_CONFIG, defaultPointsConfig);
 
-    // Find the matching price tier
-    const rule = config.find(r => orderTotal >= r.minPrice && orderTotal <= r.maxPrice);
-    const pointsPerUnit = rule ? rule.pointsPerUnit : 1;
-
-    // Calculate points: pointsPerUnit per 1000 VND
-    const earned = Math.floor(orderTotal / 1000) * pointsPerUnit;
+    let earned = 0;
+    if (cartItems && cartItems.length > 0) {
+      // Calculate points per product based on product price
+      for (const item of cartItems) {
+        const productPrice = item.product.isFlashSale && item.product.flashSalePrice
+          ? item.product.flashSalePrice
+          : item.product.price;
+        const pointsPerProduct = getPointsForPrice(productPrice, config);
+        earned += pointsPerProduct * item.quantity;
+      }
+    } else {
+      // Fallback: calculate based on order total
+      earned = getPointsForPrice(orderTotal, config);
+    }
 
     const updatedUser = {
       ...user,
       points: user.points + earned,
-      tier: computeTier(user.points + earned),
       totalOrders: user.totalOrders + 1,
     };
     persistUser(updatedUser);
@@ -393,7 +403,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updatedUser = {
       ...user,
       points: user.points - points,
-      tier: computeTier(user.points - points),
     };
     persistUser(updatedUser);
     showNotification(`${points} điểm đã được đổi thành công!`, 'success');
@@ -405,6 +414,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPointsConfig(config);
     setToStorage(STORAGE_KEYS.POINTS_CONFIG, config);
     showNotification('Đã cập nhật cấu hình điểm thưởng', 'success');
+  }, [showNotification]);
+
+  // ADMIN: About Content
+  const updateAboutContent = useCallback((updates: Partial<AboutContent>) => {
+    setAboutContent(prev => {
+      const updated = { ...prev, ...updates };
+      setToStorage(STORAGE_KEYS.ABOUT, updated);
+      return updated;
+    });
+    showNotification('Đã cập nhật nội dung trang Giới thiệu', 'success');
   }, [showNotification]);
 
   // ADMIN: Rewards CRUD
@@ -467,6 +486,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addRewardItem,
       updateRewardItem,
       deleteRewardItem,
+      aboutContent,
+      updateAboutContent,
     }}>
       {children}
     </AppContext.Provider>

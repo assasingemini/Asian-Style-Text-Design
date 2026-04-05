@@ -60,7 +60,7 @@ export default function AccountPage() {
             <ImageWithFallback src={user?.avatar || ''} alt={user?.name || ''} className="w-full h-full object-cover" />
           </div>
           <div className="flex-1">
-            <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase mb-1">Thành viên {user?.tier}</p>
+            <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase mb-1">Thành viên KUMO</p>
             <h1 className="font-['Cormorant_Garamond'] text-3xl text-white">{user?.name}</h1>
             <p className="text-white/50 text-sm mt-1">{user?.email}</p>
           </div>
@@ -238,8 +238,8 @@ export default function AccountPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/10 mb-10">
                   {[
                     { label: 'Điểm hiện có', value: user?.points.toLocaleString() || '0', sub: 'Có thể đổi ngay' },
-                    { label: 'Hạng hiện tại', value: user?.tier || 'Bronze', sub: 'Cấp độ thành viên' },
-                    { label: 'Tổng điểm đã tích lũy', value: '3,239', sub: 'Tổng cộng từ trước đến nay' },
+                    { label: 'Tổng đơn hàng', value: user?.totalOrders.toString() || '0', sub: 'Từ trước đến nay' },
+                    { label: 'Thành viên từ', value: user?.joinDate?.split('-')[0] || '2026', sub: 'Năm đăng ký' },
                   ].map(stat => (
                     <div key={stat.label} className="bg-white p-8">
                       <p className="text-[9px] tracking-[0.3em] uppercase text-black/40 mb-3">{stat.label}</p>

@@ -62,8 +62,8 @@ export default function CheckoutPage() {
       redeemPoints(pointsToRedeem);
     }
     await new Promise(resolve => setTimeout(resolve, 1500));
-    // Earn points based on admin-configured tiers
-    earnPoints(finalTotal);
+    // Earn points based on admin-configured price thresholds per product
+    earnPoints(finalTotal, cart);
     clearCart();
     navigate('/checkout/confirm');
   };

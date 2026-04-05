@@ -5,19 +5,12 @@ import { Link } from 'react-router';
 import { useApp }from '../context/AppContext';
 import { formatPrice } from '../data/products';
 
-const tiers = [
-  { name: 'Bronze', range: '0 – 999', color: '#CD7F32', perks: ['1 điểm mỗi 1.000 VNĐ', 'Quà tặng sinh nhật', 'Truy cập sớm các đợt giảm giá'] },
-  { name: 'Silver', range: '1.000 – 4,999', color: '#C0C0C0', perks: ['1.5 điểm mỗi 1.000 VNĐ', 'Miễn phí vận chuyển trọn đời', 'Sản phẩm độc quyền thành viên', 'Quà tặng sinh nhật x2'] },
-  { name: 'Gold', range: '5,000 – 9,999', color: '#FFD700', perks: ['2 điểm mỗi 1.000 VNĐ', 'Chăm sóc ưu tiên', 'Lời mời sự kiện riêng tư', 'Quà tặng kèm đơn hàng', 'Quà tặng sinh nhật x3'] },
-  { name: 'Platinum', range: '10,000+', color: '#E5E4E2', perks: ['3 điểm mỗi 1.000 VNĐ', 'Tư vấn phong cách riêng', 'Quyền mua sớm bộ sưu tập mới', 'Quà tặng độc quyền hàng tháng', 'Sự kiện VIP'] },
-];
-
 const history = [
-  { id: 'h1', action: 'Đơn hàng #ORD-2026-0312', points: 478, type: 'earned', date: '2026-03-12' },
-  { id: 'h2', action: 'Đơn hàng #ORD-2026-0228', points: 289, type: 'earned', date: '2026-02-28' },
-  { id: 'h3', action: 'Đổi mã giảm giá', points: -500, type: 'spent', date: '2026-02-20' },
+  { id: 'h1', action: 'Đơn hàng #ORD-2026-0312', points: 45, type: 'earned', date: '2026-03-12' },
+  { id: 'h2', action: 'Đơn hàng #ORD-2026-0228', points: 30, type: 'earned', date: '2026-02-28' },
+  { id: 'h3', action: 'Đổi mã giảm giá 50k', points: -500, type: 'spent', date: '2026-02-20' },
   { id: 'h4', action: 'Thưởng sinh nhật', points: 200, type: 'earned', date: '2026-02-15' },
-  { id: 'h5', action: 'Thưởng giới thiệu bạn bè', points: 100, type: 'earned', date: '2026-01-30' },
+  { id: 'h5', action: 'Đơn hàng #ORD-2026-0130', points: 60, type: 'earned', date: '2026-01-30' },
 ];
 
 export default function RewardsPage() {
@@ -25,23 +18,7 @@ export default function RewardsPage() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'exchange' | 'history'>('dashboard');
   const [redeemLoading, setRedeemLoading] = useState<string | null>(null);
 
-  // Use only active rewards from context
   const activeRewards = rewardItems.filter(r => r.active);
-
-  const currentTier = user
-    ? user.points >= 10000 ? tiers[3]
-    : user.points >= 5000 ? tiers[2]
-    : user.points >= 1000 ? tiers[1]
-    : tiers[0]
-    : tiers[0];
-
-  const nextTier = tiers[tiers.indexOf(currentTier) + 1];
-  const pointsToNext = nextTier
-    ? parseInt(nextTier.range.split(' – ')[0].replace('.', '').replace(',', '')) - (user?.points || 0)
-    : 0;
-  const progressPercent = nextTier
-    ? Math.min(100, ((user?.points || 0) / parseInt(nextTier.range.split(' – ')[0].replace('.', '').replace(',', ''))) * 100)
-    : 100;
 
   const handleRedeem = async (reward: typeof activeRewards[0]) => {
     if (!user || user.points < reward.points) {
@@ -53,6 +30,9 @@ export default function RewardsPage() {
     redeemPoints(reward.points);
     setRedeemLoading(null);
   };
+
+  // Sort points config for display
+  const sortedConfig = [...pointsConfig].sort((a, b) => a.minPrice - b.minPrice);
 
   return (
     <div className="min-h-screen bg-white pt-16">
@@ -66,25 +46,14 @@ export default function RewardsPage() {
                 <p className="text-white/40 text-xs tracking-[0.35em] uppercase">Chương trình Khách hàng Thân thiết</p>
               </div>
               <h1 className="font-['Cormorant_Garamond'] text-6xl md:text-7xl mb-4">Ưu đãi KUMO</h1>
-              <p className="text-white/50 text-sm tracking-wide">Tích điểm, mở khóa đặc quyền, nâng tầm phong cách sống.</p>
+              <p className="text-white/50 text-sm tracking-wide">Tích điểm khi mua sắm, đổi điểm lấy ưu đãi hấp dẫn.</p>
             </div>
 
             {user && isLoggedIn && (
               <div className="bg-white/5 border border-white/10 p-8 min-w-[280px]">
-                <p className="text-white/40 text-[9px] tracking-[0.3em] uppercase mb-2">Thành viên {user.tier}</p>
+                <p className="text-white/40 text-[9px] tracking-[0.3em] uppercase mb-2">Điểm của bạn</p>
                 <p className="font-['Cormorant_Garamond'] text-5xl text-white mb-1">{user.points.toLocaleString()}</p>
                 <p className="text-white/40 text-xs tracking-wide">điểm khả dụng</p>
-                {nextTier && (
-                  <div className="mt-5">
-                    <div className="flex justify-between text-[9px] tracking-wider text-white/30 mb-2">
-                      <span>{currentTier.name}</span>
-                      <span>{pointsToNext.toLocaleString()} điểm nữa để lên {nextTier.name}</span>
-                    </div>
-                    <div className="h-1 bg-white/10">
-                      <div className="h-full bg-white transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -118,10 +87,9 @@ export default function RewardsPage() {
         {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-black/10 mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-black/10 mb-12">
               {[
                 { label: 'Tổng điểm', value: user?.points.toLocaleString() || '0' },
-                { label: 'Hạng hiện tại', value: user?.tier || 'Bronze' },
                 { label: 'Tổng đơn hàng', value: user?.totalOrders.toString() || '0' },
                 { label: 'Thành viên từ', value: user?.joinDate?.split('-')[0] || '2026' },
               ].map(stat => (
@@ -131,36 +99,36 @@ export default function RewardsPage() {
                 </div>
               ))}
             </div>
+
+            {/* How to earn points */}
             <div className="mb-10">
-              <h2 className="font-['Cormorant_Garamond'] text-3xl mb-8">Các hạng thành viên</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-black/10">
-                {tiers.map(tier => {
-                  const isCurrent = currentTier.name === tier.name;
-                  return (
-                    <motion.div key={tier.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                      className={`bg-white p-8 ${isCurrent ? 'ring-2 ring-black' : ''}`}>
-                      {isCurrent && <span className="text-[9px] tracking-[0.2em] uppercase bg-black text-white px-2 py-1 mb-4 inline-block">Hạng của bạn</span>}
-                      <div className="w-8 h-1 mb-4" style={{ backgroundColor: tier.color }} />
-                      <p className="text-[9px] tracking-[0.25em] uppercase text-black/40 mb-1">{tier.range} điểm</p>
-                      <h3 className="font-['Cormorant_Garamond'] text-2xl mb-6">{tier.name}</h3>
-                      <ul className="space-y-2.5">
-                        {tier.perks.map(perk => (
-                          <li key={perk} className="flex items-start gap-2 text-xs text-black/60 tracking-wide">
-                            <Check size={12} className="shrink-0 mt-0.5 text-black" />{perk}
-                          </li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  );
-                })}
+              <h2 className="font-['Cormorant_Garamond'] text-3xl mb-8">Cách tích điểm</h2>
+              <p className="text-sm text-black/50 tracking-wide mb-6">
+                Mỗi sản phẩm bạn mua sẽ được tính điểm dựa trên giá sản phẩm. Mốc giá cao nhất phù hợp sẽ được áp dụng.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-black/10">
+                {sortedConfig.map((rule, i) => (
+                  <motion.div key={rule.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="bg-white p-8">
+                    <p className="text-[10px] tracking-[0.3em] uppercase text-black/30 mb-2">Mốc {i + 1}</p>
+                    <h3 className="font-['Cormorant_Garamond'] text-2xl mb-2">
+                      {rule.points} điểm
+                    </h3>
+                    <p className="text-sm text-black/50 tracking-wide">
+                      Sản phẩm từ {formatPrice(rule.minPrice)} trở lên
+                    </p>
+                  </motion.div>
+                ))}
               </div>
             </div>
-            {/* How to earn - using dynamic pointsConfig */}
+
+            {/* Additional ways to earn */}
             <div className="bg-[#F8F6F2] p-8 md:p-12">
-              <h2 className="font-['Cormorant_Garamond'] text-2xl mb-8">Cách tích điểm</h2>
+              <h2 className="font-['Cormorant_Garamond'] text-2xl mb-8">Cách khác để tích điểm</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
-                  { icon: '🛍️', action: 'Mua sắm', pts: `${pointsConfig[0]?.pointsPerUnit || 1} điểm mỗi 1.000 VNĐ trở lên` },
+                  { icon: '🛍️', action: 'Mua sắm', pts: 'Điểm theo giá sản phẩm' },
                   { icon: '🎂', action: 'Thưởng sinh nhật', pts: '200 điểm thưởng' },
                   { icon: '👥', action: 'Giới thiệu bạn bè', pts: '100 điểm mỗi lượt' },
                 ].map(item => (

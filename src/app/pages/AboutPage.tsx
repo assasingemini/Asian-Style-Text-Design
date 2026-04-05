@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ArrowRight, Leaf, Gem, Palette, Scissors, Users, ShoppingBag, Globe, Award } from 'lucide-react';
 import { motion, useInView, useScroll, useTransform } from 'motion/react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { useApp } from '../context/AppContext';
 
 // --- Reveal Animation Wrapper ---
 function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -21,82 +22,12 @@ function Reveal({ children, className = '', delay = 0 }: { children: React.React
   );
 }
 
-// --- Core Values Data ---
-const coreValues = [
-  {
-    icon: Palette,
-    title: 'Tối giản',
-    subtitle: 'MINIMALISM',
-    description: 'Chúng tôi tin rằng vẻ đẹp nằm ở sự tinh gọn. Mỗi thiết kế loại bỏ những gì thừa thãi, giữ lại tinh hoa, tạo nên phong cách vượt thời gian.',
-  },
-  {
-    icon: Gem,
-    title: 'Chất lượng',
-    subtitle: 'QUALITY',
-    description: 'Từ chất liệu cao cấp đến đường may tỉ mỉ, mỗi sản phẩm KUMO đều trải qua quy trình kiểm soát chất lượng nghiêm ngặt trước khi đến tay bạn.',
-  },
-  {
-    icon: Leaf,
-    title: 'Bền vững',
-    subtitle: 'SUSTAINABILITY',
-    description: 'Cam kết sử dụng nguyên liệu thân thiện với môi trường và quy trình sản xuất có trách nhiệm. Thời trang đẹp không nên đánh đổi bằng tương lai.',
-  },
-  {
-    icon: Scissors,
-    title: 'Thủ công',
-    subtitle: 'CRAFTSMANSHIP',
-    description: 'Mỗi sản phẩm mang dấu ấn của những nghệ nhân lành nghề Việt Nam, kết hợp kỹ thuật thủ công truyền thống với thiết kế hiện đại.',
-  },
-];
-
-// --- Timeline Data ---
-const timelineEvents = [
-  {
-    year: '2020',
-    title: 'Khởi nguồn',
-    description: 'KUMO ra đời tại một xưởng nhỏ ở TP. Hồ Chí Minh với tầm nhìn mang triết lý tối giản Á Đông vào thời trang đường phố Việt Nam.',
-  },
-  {
-    year: '2021',
-    title: 'Bộ sưu tập đầu tiên',
-    description: 'Ra mắt BST "Khoảng Không" — bộ sưu tập đầu tay lấy cảm hứng từ thiền định và kiến trúc Nhật Bản, nhận được nhiều đánh giá tích cực.',
-  },
-  {
-    year: '2022',
-    title: 'Mở rộng quy mô',
-    description: 'Mở studio thiết kế chính thức tại Quận 1. Hợp tác với các nghệ nhân dệt truyền thống tại Hội An và Đà Lạt.',
-  },
-  {
-    year: '2023',
-    title: 'Vươn tầm quốc tế',
-    description: 'Sản phẩm KUMO có mặt tại 5 quốc gia Đông Nam Á. Ra mắt BST "Tĩnh Lặng" gây tiếng vang lớn trong cộng đồng thời trang.',
-  },
-  {
-    year: '2024',
-    title: 'Bền vững & Đổi mới',
-    description: 'Chuyển đổi 80% nguyên liệu sang nguồn bền vững. Ra mắt chương trình tái chế vải và đóng gói thân thiện với môi trường.',
-  },
-  {
-    year: '2025',
-    title: 'Kỷ nguyên số',
-    description: 'Ra mắt nền tảng thương mại điện tử mới, chương trình Loyalty KUMO Points, và trải nghiệm cá nhân hóa cho khách hàng.',
-  },
-  {
-    year: '2026',
-    title: 'Tương lai phía trước',
-    description: 'BST Xuân Hè 2026 "Khoảng Không Ở Giữa" — tiếp tục hành trình tái định nghĩa sự tối giản trong thời trang Á Đông.',
-  },
-];
-
-// --- Stats Data ---
-const stats = [
-  { icon: Users, value: '50.000+', label: 'Khách hàng tin dùng' },
-  { icon: ShoppingBag, value: '200+', label: 'Sản phẩm thiết kế' },
-  { icon: Globe, value: '6', label: 'Quốc gia phân phối' },
-  { icon: Award, value: '15+', label: 'Giải thưởng thời trang' },
-];
+// Map icon indices for core values
+const valueIcons = [Palette, Gem, Leaf, Scissors];
 
 export default function AboutPage() {
+  const { aboutContent: content } = useApp();
+
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -105,13 +36,16 @@ export default function AboutPage() {
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
+  // Stat icons
+  const statIcons = [Users, ShoppingBag, Globe, Award];
+
   return (
     <div className="bg-white">
       {/* ===== HERO ===== */}
       <section ref={heroRef} className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
         <motion.div style={{ y: heroY }} className="absolute inset-0">
           <ImageWithFallback
-            src="https://images.unsplash.com/photo-1558171813-4c088753af8f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxhc2lhbiUyMGZhc2hpb24lMjBtaW5pbWFsJTIwYmxhY2slMjBhbmQlMjB3aGl0ZXxlbnwxfHx8fDE3NDM1NjU2MDB8MA&ixlib=rb-4.1.0&q=80&w=1920"
+            src={content.hero.image}
             alt="KUMO About Hero"
             className="w-full h-full object-cover scale-110"
           />
@@ -136,7 +70,9 @@ export default function AboutPage() {
             transition={{ duration: 0.9, delay: 0.4 }}
             className="font-['Cormorant_Garamond'] text-white text-5xl md:text-7xl lg:text-8xl leading-none mb-6"
           >
-            Về <em>KUMO</em>
+            {content.hero.title.includes('KUMO') ? (
+              <>{content.hero.title.split('KUMO')[0]}<em>KUMO</em>{content.hero.title.split('KUMO')[1]}</>
+            ) : content.hero.title}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -144,7 +80,7 @@ export default function AboutPage() {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="text-white/50 text-sm tracking-wider max-w-md mx-auto"
           >
-            Tái định nghĩa sự tối giản — từ Sài Gòn đến thế giới.
+            {content.hero.subtitle}
           </motion.p>
         </motion.div>
       </section>
@@ -160,20 +96,9 @@ export default function AboutPage() {
                 <em>sự tĩnh lặng</em>
               </h2>
               <div className="space-y-5 text-black/60 text-sm leading-relaxed tracking-wide">
-                <p>
-                  KUMO, trong tiếng Nhật có nghĩa là &ldquo;đám mây&rdquo;, được thành lập với niềm tin rằng thời trang đẹp nhất 
-                  là khi nó không cần cố gắng thu hút sự chú ý. Giống như những đám mây lặng lẽ trôi trên bầu trời, 
-                  thiết kế của chúng tôi tìm kiếm sự cân bằng giữa hiện diện và vắng mặt.
-                </p>
-                <p>
-                  Lấy cảm hứng từ triết lý thẩm mỹ Wabi-Sabi của Nhật Bản — tôn vinh vẻ đẹp trong sự không hoàn hảo 
-                  — mỗi sản phẩm KUMO là sự giao thoa giữa nghệ thuật thủ công Việt Nam và tư duy thiết kế tối giản 
-                  Á Đông. Chúng tôi không chạy theo xu hướng; chúng tôi tạo ra những tác phẩm vượt thời gian.
-                </p>
-                <p>
-                  Từ xưởng nhỏ đầu tiên ở Sài Gòn, KUMO đã phát triển thành một thương hiệu được yêu mến 
-                  khắp Đông Nam Á, nhưng vẫn giữ nguyên tinh thần ban đầu: ít hơn là nhiều hơn.
-                </p>
+                {content.brandStory.paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
               </div>
             </div>
           </Reveal>
@@ -182,12 +107,11 @@ export default function AboutPage() {
             <div className="relative">
               <div className="overflow-hidden aspect-[3/4]">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1509631179647-0177331693ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwY2xvdGhpbmd8ZW58MXx8fHwxNzQzNTY1NjAwfDA&ixlib=rb-4.1.0&q=80&w=800"
+                  src={content.brandStory.image}
                   alt="KUMO Brand Story"
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                 />
               </div>
-              {/* Decorative element */}
               <div className="absolute -bottom-4 -left-4 w-24 h-24 border border-black/10" />
               <div className="absolute -top-4 -right-4 w-24 h-24 border border-black/10" />
             </div>
@@ -195,9 +119,46 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* ===== GALLERY / LOOKBOOK ===== */}
+      {content.gallery.length > 0 && (
+        <section className="bg-[#F8F6F2] py-20 md:py-28 overflow-hidden">
+          <div className="max-w-[1440px] mx-auto px-6 md:px-12">
+            <Reveal>
+              <div className="text-center mb-16">
+                <p className="text-[10px] tracking-[0.4em] uppercase text-black/40 mb-4">Nghệ thuật & Phong cách</p>
+                <h2 className="font-['Cormorant_Garamond'] text-4xl md:text-5xl">Thế giới của KUMO</h2>
+              </div>
+            </Reveal>
+
+            {/* Masonry-style gallery grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {content.gallery.map((img, i) => {
+                // Alternate sizes for visual interest
+                const isLarge = i === 0 || i === 3 || i === 5;
+                return (
+                  <Reveal key={img.id} delay={i * 0.06} className={isLarge ? 'row-span-2' : ''}>
+                    <div className={`overflow-hidden group relative ${isLarge ? 'aspect-[3/5]' : 'aspect-square'} h-full`}>
+                      <ImageWithFallback
+                        src={img.src}
+                        alt={img.alt}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-500 flex items-end">
+                        <p className="text-white text-xs tracking-wider p-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                          {img.alt}
+                        </p>
+                      </div>
+                    </div>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ===== FOUNDER ===== */}
       <section className="bg-black py-20 md:py-28 relative overflow-hidden">
-        {/* Subtle glow */}
         <div className="absolute inset-0 opacity-[0.03]">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-white blur-3xl" />
         </div>
@@ -211,70 +172,47 @@ export default function AboutPage() {
           </Reveal>
 
           <div className="grid md:grid-cols-5 gap-12 md:gap-16 items-center">
-            {/* Portrait */}
             <Reveal className="md:col-span-2">
               <div className="relative mx-auto max-w-sm">
                 <div className="overflow-hidden aspect-[3/4]">
                   <ImageWithFallback
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMG1hbiUyMHBvcnRyYWl0JTIwbWluaW1hbHxlbnwxfHx8fDE3NDM1NjU2MDB8MA&ixlib=rb-4.1.0&q=80&w=600"
-                    alt="Trần Minh Khôi — Nhà sáng lập KUMO"
+                    src={content.founder.image}
+                    alt={`${content.founder.name} — ${content.founder.title}`}
                     className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
                   />
                 </div>
-                {/* Name overlay */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-                  <p className="font-['Cormorant_Garamond'] text-white text-2xl">Trần Minh Khôi</p>
-                  <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase">Nhà sáng lập & Giám đốc Sáng tạo</p>
+                  <p className="font-['Cormorant_Garamond'] text-white text-2xl">{content.founder.name}</p>
+                  <p className="text-white/40 text-[10px] tracking-[0.3em] uppercase">{content.founder.title}</p>
                 </div>
               </div>
             </Reveal>
 
-            {/* Story */}
             <Reveal delay={0.2} className="md:col-span-3">
               <div>
                 <div className="space-y-5 text-white/50 text-sm leading-relaxed tracking-wide">
-                  <p>
-                    Sinh năm 1992 tại TP. Hồ Chí Minh, <span className="text-white/80">Trần Minh Khôi</span> lớn lên trong một gia đình 
-                    có ba thế hệ làm nghề may. Từ nhỏ, anh đã được bao quanh bởi tiếng máy may và mùi vải mới 
-                    — những ký ức đã gieo mầm cho niềm đam mê thời trang suốt đời.
-                  </p>
-                  <p>
-                    Sau khi tốt nghiệp ngành Thiết kế Thời trang tại Đại học Mỹ thuật TP.HCM, Khôi dành 3 năm 
-                    làm việc tại Tokyo, nơi anh được đắm chìm trong triết lý thẩm mỹ tối giản của Nhật Bản. 
-                    Chính tại đây, ý tưởng về KUMO được hình thành — kết hợp kỹ nghệ thủ công Việt Nam 
-                    với tư duy thiết kế Wabi-Sabi.
-                  </p>
-                  <p>
-                    Năm 2020, giữa đại dịch, Khôi quyết định quay về Sài Gòn và thành lập KUMO trong một xưởng 
-                    nhỏ 20m² tại Quận 3. Với chỉ 2 thợ may và một cái máy in lụa cũ, anh bắt đầu tạo ra 
-                    những thiết kế đầu tiên mang triết lý &ldquo;ít hơn là nhiều hơn&rdquo;.
-                  </p>
-                  <p>
-                    Ngày nay, với đội ngũ hơn 50 nghệ nhân và nhà thiết kế, Khôi vẫn trực tiếp giám sát 
-                    từng bộ sưu tập, đảm bảo mỗi sản phẩm KUMO đều mang hơi thở của người sáng lập 
-                    — sự tĩnh lặng có chủ đích, nơi mỗi đường may đều kể một câu chuyện.
-                  </p>
+                  {content.founder.bio.map((paragraph, i) => (
+                    <p key={i}>
+                      {i === 0 ? (
+                        <>{paragraph.split(content.founder.name)[0]}<span className="text-white/80">{content.founder.name}</span>{paragraph.split(content.founder.name).slice(1).join(content.founder.name)}</>
+                      ) : paragraph}
+                    </p>
+                  ))}
                 </div>
 
-                {/* Founder quote */}
                 <div className="mt-10 pt-8 border-t border-white/10">
                   <blockquote>
                     <p className="font-['Cormorant_Garamond'] text-white/70 text-xl md:text-2xl italic leading-relaxed mb-4">
-                      &ldquo;Tôi không thiết kế quần áo. Tôi thiết kế khoảng không giữa con người và sự tự do của họ.&rdquo;
+                      &ldquo;{content.founder.quote}&rdquo;
                     </p>
                     <footer className="text-white/30 text-[10px] tracking-[0.3em] uppercase">
-                      — Trần Minh Khôi
+                      — {content.founder.name}
                     </footer>
                   </blockquote>
                 </div>
 
-                {/* Founder highlights */}
                 <div className="grid grid-cols-3 gap-6 mt-10">
-                  {[
-                    { label: 'Năm kinh nghiệm', value: '10+' },
-                    { label: 'BST đã ra mắt', value: '12' },
-                    { label: 'Giải thưởng', value: '8' },
-                  ].map((item) => (
+                  {content.founder.stats.map((item) => (
                     <div key={item.label} className="text-center">
                       <p className="font-['Cormorant_Garamond'] text-white text-3xl mb-1">{item.value}</p>
                       <p className="text-white/30 text-[9px] tracking-[0.2em] uppercase">{item.label}</p>
@@ -298,10 +236,10 @@ export default function AboutPage() {
           </Reveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-black/10">
-            {coreValues.map((value, i) => {
-              const Icon = value.icon;
+            {content.coreValues.map((value, i) => {
+              const Icon = valueIcons[i % valueIcons.length];
               return (
-                <Reveal key={value.title} delay={i * 0.1}>
+                <Reveal key={value.id} delay={i * 0.1}>
                   <div className="bg-white p-8 md:p-10 h-full group hover:bg-black transition-all duration-500 cursor-default">
                     <Icon
                       size={28}
@@ -336,18 +274,15 @@ export default function AboutPage() {
           </Reveal>
 
           <div className="relative max-w-3xl mx-auto">
-            {/* Vertical Line */}
             <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-black/10 md:-translate-x-px" />
 
-            {timelineEvents.map((event, i) => (
-              <Reveal key={event.year} delay={i * 0.08}>
+            {content.timeline.map((event, i) => (
+              <Reveal key={event.id} delay={i * 0.08}>
                 <div className={`relative flex items-start gap-8 mb-12 md:mb-16 ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
-                  {/* Dot */}
                   <div className="absolute left-6 md:left-1/2 w-3 h-3 bg-black rounded-full -translate-x-1/2 mt-2 z-10">
                     <div className="absolute inset-0 bg-black rounded-full animate-ping opacity-20" />
                   </div>
 
-                  {/* Content */}
                   <div className={`ml-14 md:ml-0 md:w-[calc(50%-2rem)] ${i % 2 === 0 ? 'md:text-right md:pr-8' : 'md:text-left md:pl-8'}`}>
                     <span className="font-['Cormorant_Garamond'] text-3xl md:text-4xl text-black/20 block mb-2">
                       {event.year}
@@ -360,7 +295,6 @@ export default function AboutPage() {
                     </p>
                   </div>
 
-                  {/* Spacer for alternating */}
                   <div className="hidden md:block md:w-[calc(50%-2rem)]" />
                 </div>
               </Reveal>
@@ -371,7 +305,6 @@ export default function AboutPage() {
 
       {/* ===== CREDIBILITY / STATS ===== */}
       <section className="bg-black py-20 md:py-28 relative overflow-hidden">
-        {/* Background Glow */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-white blur-3xl" />
         </div>
@@ -390,8 +323,8 @@ export default function AboutPage() {
           </Reveal>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
-            {stats.map((stat, i) => {
-              const Icon = stat.icon;
+            {content.stats.map((stat, i) => {
+              const Icon = statIcons[i % statIcons.length];
               return (
                 <Reveal key={stat.label} delay={i * 0.1}>
                   <div className="bg-black p-8 md:p-12 text-center group hover:bg-white/5 transition-colors duration-500">
@@ -414,7 +347,6 @@ export default function AboutPage() {
             })}
           </div>
 
-          {/* Trust badges */}
           <Reveal>
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 mt-12 md:mt-16">
               {['Chất lượng ISO 9001', 'Sản xuất bền vững', 'Nguyên liệu hữu cơ', 'Đóng gói thân thiện'].map((badge) => (
@@ -435,7 +367,7 @@ export default function AboutPage() {
             <Reveal>
               <div className="relative overflow-hidden aspect-[4/5]">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwdHJlbmRzJTIwbW9kZXJuJTIwbWluaW1hbHxlbnwxfHx8fDE3NDM1NjU2MDB8MA&ixlib=rb-4.1.0&q=80&w=800"
+                  src={content.vision.image}
                   alt="KUMO Trends"
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                 />
@@ -451,25 +383,8 @@ export default function AboutPage() {
                 </h2>
 
                 <div className="space-y-6">
-                  {[
-                    {
-                      title: 'Thời trang bền vững',
-                      desc: 'Xu hướng tất yếu của tương lai. KUMO cam kết 100% nguyên liệu bền vững vào năm 2028, từ vải organic cotton đến sợi tái chế.'
-                    },
-                    {
-                      title: 'Genderless Fashion',
-                      desc: 'Xóa nhòa ranh giới giới tính trong thiết kế. BST mới của KUMO hướng đến phong cách phi giới tính, tôn vinh sự tự do cá nhân.'
-                    },
-                    {
-                      title: 'Kỹ thuật số & Thủ công',
-                      desc: 'Kết hợp công nghệ in 3D và AI trong thiết kế với kỹ thuật may thủ công truyền thống, tạo nên những sản phẩm độc nhất vô nhị.'
-                    },
-                    {
-                      title: 'Slow Fashion',
-                      desc: 'KUMO tin vào thời trang chậm — sản xuất có ý thức, chất lượng vượt trội, và sản phẩm được tạo ra để tồn tại lâu dài, không phải một mùa rồi bỏ.'
-                    },
-                  ].map((trend, i) => (
-                    <div key={trend.title} className="group">
+                  {content.trends.map((trend, i) => (
+                    <div key={trend.id} className="group">
                       <div className="flex items-start gap-4">
                         <span className="font-['Cormorant_Garamond'] text-2xl text-black/15 mt-[-2px]">
                           {String(i + 1).padStart(2, '0')}
@@ -479,7 +394,7 @@ export default function AboutPage() {
                           <p className="text-sm text-black/50 leading-relaxed tracking-wide">{trend.desc}</p>
                         </div>
                       </div>
-                      {i < 3 && <div className="border-b border-black/5 mt-6" />}
+                      {i < content.trends.length - 1 && <div className="border-b border-black/5 mt-6" />}
                     </div>
                   ))}
                 </div>
@@ -495,10 +410,10 @@ export default function AboutPage() {
           <Reveal>
             <blockquote>
               <p className="font-['Cormorant_Garamond'] text-3xl md:text-4xl lg:text-5xl leading-snug italic text-black/80 mb-8">
-                &ldquo;Thời trang không chỉ là những gì bạn mặc, mà là cách bạn cảm nhận khoảng không giữa bạn và thế giới.&rdquo;
+                &ldquo;{content.brandQuote.text}&rdquo;
               </p>
               <footer className="text-[10px] tracking-[0.35em] uppercase text-black/40">
-                — Triết lý sáng lập KUMO
+                — {content.brandQuote.author}
               </footer>
             </blockquote>
           </Reveal>
@@ -508,7 +423,7 @@ export default function AboutPage() {
       {/* ===== CTA BANNER ===== */}
       <section className="relative h-96 overflow-hidden">
         <ImageWithFallback
-          src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwc3RvcmUlMjBkYXJrJTIwbWluaW1hbHxlbnwxfHx8fDE3NDM1NjU2MDB8MA&ixlib=rb-4.1.0&q=80&w=1920"
+          src={content.cta.image}
           alt="KUMO CTA"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -517,7 +432,7 @@ export default function AboutPage() {
           <Reveal>
             <p className="text-white/50 text-[10px] tracking-[0.4em] uppercase mb-4">Bắt đầu hành trình của bạn</p>
             <h2 className="font-['Cormorant_Garamond'] text-white text-4xl md:text-6xl mb-8">
-              Khám phá Bộ sưu tập KUMO
+              {content.cta.title}
             </h2>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link

@@ -278,20 +278,20 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-black/10">
             {[
-              { tier: 'Bronze', points: '0 – 999', perks: ['1 điểm mỗi 1.000 VNĐ', 'Quà tặng sinh nhật', 'Truy cập sớm các đợt giảm giá'] },
-              { tier: 'Silver', points: '1.000 – 4,999', perks: ['1.5 điểm mỗi 1.000 VNĐ', 'Miễn phí vận chuyển trọn đời', 'Sản phẩm dành riêng cho thành viên'] },
-              { tier: 'Gold', points: '5,000+', perks: ['2 điểm mỗi 1.000 VNĐ', 'Chăm sóc khách hàng ưu tiên', 'Lời mời sự kiện riêng tư'] },
+              { title: 'Tích điểm', subtitle: 'Mua sắm', perks: ['Mua sản phẩm, tự động nhận điểm', 'Điểm tính theo giá sản phẩm', 'Mua càng nhiều, tích càng nhanh'] },
+              { title: 'Đổi ưu đãi', subtitle: 'Đặc quyền', perks: ['Mã giảm giá độc quyền', 'Miễn phí vận chuyển', 'Quà tặng đặc biệt'] },
+              { title: 'Thêm điểm', subtitle: 'Thưởng', perks: ['200 điểm thưởng sinh nhật', '100 điểm giới thiệu bạn bè', 'Ưu đãi theo mùa'] },
             ].map((item, i) => (
               <motion.div
-                key={item.tier}
+                key={item.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
                 className="bg-white p-10 md:p-12"
               >
-                <p className="text-[10px] tracking-[0.35em] uppercase text-black/40 mb-2">{item.points} điểm</p>
-                <h3 className="font-['Cormorant_Garamond'] text-3xl mb-6">{item.tier}</h3>
+                <p className="text-[10px] tracking-[0.35em] uppercase text-black/40 mb-2">{item.subtitle}</p>
+                <h3 className="font-['Cormorant_Garamond'] text-3xl mb-6">{item.title}</h3>
                 <ul className="space-y-3">
                   {item.perks.map(perk => (
                     <li key={perk} className="flex items-center gap-2 text-sm text-black/60 tracking-wide">
