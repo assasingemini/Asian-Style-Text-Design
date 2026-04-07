@@ -73,6 +73,42 @@ async function main() {
     console.log("Seeded Product:", product.name);
   }
 
+  // Seed Blog Posts
+  const { blogPosts } = await import("../src/app/data/blog");
+  for (const post of blogPosts) {
+    await prisma.blogPost.upsert({
+      where: { slug: post.slug },
+      update: {},
+      create: {
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        content: post.content,
+        image: post.image,
+        category: post.category,
+        author: post.author,
+        readTime: post.readTime,
+        tags: post.tags,
+        createdAt: new Date(post.date),
+      },
+    });
+    console.log("Seeded Blog Post:", post.title);
+  }
+
+  // Seed a test user 
+  const testPassword = await bcrypt.hash("123456", 10);
+  await prisma.user.upsert({
+    where: { email: "customer@kumo.vn" },
+    update: {},
+    create: {
+      name: "Nguyễn Văn Khách",
+      email: "customer@kumo.vn",
+      password: testPassword,
+      role: "customer",
+    },
+  });
+  console.log("Seeded test customer");
+
   console.log("Seeding finished.");
 }
 

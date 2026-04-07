@@ -91,6 +91,8 @@ export async function createProduct(data: any) {
         colors: data.colors,
         isNew: data.isNew,
         isBestseller: data.isBestseller,
+        isFlashSale: data.isFlashSale,
+        flashSalePrice: data.flashSalePrice,
         stock: data.stock,
       },
     });
@@ -118,6 +120,8 @@ export async function updateProduct(id: string, data: any) {
         colors: data.colors,
         isNew: data.isNew,
         isBestseller: data.isBestseller,
+        isFlashSale: data.isFlashSale,
+        flashSalePrice: data.flashSalePrice,
         stock: data.stock,
       },
     });

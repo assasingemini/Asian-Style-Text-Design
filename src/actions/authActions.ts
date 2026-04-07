@@ -26,7 +26,11 @@ export async function login(formData: FormData) {
 
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
-    return { error: "Email hoặc mật khẩu không đúng" };
+    return { error: "Email hoặc khẩu không đúng" };
+  }
+
+  if (user.isBlocked) {
+    return { error: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên." };
   }
 
   // Set Cookie payload
@@ -119,7 +123,26 @@ export async function getSession() {
   
   try {
     const { payload } = await jwtVerify(token, key);
-    return payload;
+    if (!payload || !payload.id) return null;
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id as string },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        points: true,
+        isBlocked: true,
+        cart: true,
+        wishlist: true,
+        joinDate: true,
+        totalOrders: true,
+        avatar: true,
+      }
+    });
+
+    return user;
   } catch (error) {
     return null;
   }

@@ -81,3 +81,26 @@ export async function getAllOrders() {
 
   return { success: true, orders };
 }
+
+export async function updateOrderStatus(id: string, status: string) {
+  try {
+    const order = await prisma.order.update({
+      where: { id },
+      data: { status },
+    });
+    return { success: true, order };
+  } catch (error: any) {
+    console.error("Error updating order:", error);
+    return { success: false, error: "Lỗi nội bộ DB: " + (error.message || String(error)) };
+  }
+}
+
+export async function deleteOrder(id: string) {
+  try {
+    await prisma.order.delete({ where: { id } });
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting order:", error);
+    return { success: false, error: "Lỗi nội bộ DB: " + (error.message || String(error)) };
+  }
+}

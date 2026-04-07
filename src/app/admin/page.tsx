@@ -16,6 +16,10 @@ import { products as dummyProducts, formatPrice, Product } from '../data/product
 import { blogPosts } from '../data/blog';
 import { useApp, PointsRule, RewardItem, AboutContent } from '../context/AppContext';
 import { createProduct as createProductAction, updateProduct as updateProductAction, deleteProduct as deleteProductAction } from '@/actions/productActions';
+import { createBlogPost as createBlogAction, updateBlogPost as updateBlogAction, deleteBlogPost as deleteBlogAction, getBlogPosts as getBlogPostsAction } from '@/actions/blogActions';
+import { updateOrderStatus as updateOrderStatusAction } from '@/actions/orderActions';
+import { getAllUsers as getAllUsersAction, toggleUserBlock as toggleUserBlockAction } from '@/actions/userActions';
+import { getSetting as getSettingAction, saveSetting as saveSettingAction } from '@/actions/settingActions';
 
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about' | 'payments';
 
@@ -112,32 +116,15 @@ export default function AdminPage() {
   const [updatingOrder, setUpdatingOrder] = useState<{ id: string; customer: string; total: number; status: string; date: string; items: number } | null>(null);
   const [localOrders, setLocalOrders] = useState(mockOrders);
 
-  // Users state - read from localStorage
-  const [adminUsers] = useState<typeof mockUsers>(() => {
-    if (typeof window === 'undefined') return mockUsers;
-    try {
-      const stored = localStorage.getItem('kumo_users');
-      if (stored) {
-        const users = JSON.parse(stored);
-        const mapped = users.filter((u: any) => u.role !== 'admin').map((u: any) => ({
-          id: u.id, name: u.name, email: u.email, points: u.points || 0,
-          orders: u.totalOrders || 0, joined: u.joinDate || new Date().toISOString().split('T')[0],
-        }));
-        return mapped.length > 0 ? mapped : mockUsers;
-      }
-    } catch { /* fallback */ }
-    return mockUsers;
-  });
-  const [viewingUser, setViewingUser] = useState<typeof mockUsers[0] | null>(null);
+  // Users state
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [viewingUser, setViewingUser] = useState<any | null>(null);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
-  // Blog state - persist to localStorage
+  // Blog state
   const [showBlogModal, setShowBlogModal] = useState(false);
   const [editingBlog, setEditingBlog] = useState<string | null>(null);
-  const [localBlogPosts, setLocalBlogPosts] = useState<typeof blogPosts>(() => {
-    if (typeof window === 'undefined') return blogPosts;
-    try { const s = localStorage.getItem('kumo_admin_blog'); return s ? JSON.parse(s) : blogPosts; } catch { return blogPosts; }
-  });
+  const [localBlogPosts, setLocalBlogPosts] = useState<any[]>([]);
   const [blogForm, setBlogForm] = useState({ title: '', category: '', author: '', content: '', image: '' });
 
   // Flash sales state - persist to localStorage
@@ -148,10 +135,7 @@ export default function AdminPage() {
   ];
   const [showFlashModal, setShowFlashModal] = useState(false);
   const [editingFlash, setEditingFlash] = useState<string | null>(null);
-  const [flashCampaigns, setFlashCampaigns] = useState<typeof defaultFlash>(() => {
-    if (typeof window === 'undefined') return defaultFlash;
-    try { const s = localStorage.getItem('kumo_admin_flash'); return s ? JSON.parse(s) : defaultFlash; } catch { return defaultFlash; }
-  });
+  const [flashCampaigns, setFlashCampaigns] = useState<any[]>([]);
   const [flashForm, setFlashForm] = useState({ name: '', products: 0, discount: 0 });
 
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
@@ -159,9 +143,22 @@ export default function AdminPage() {
 
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
 
-  // Persist to Context
-  useEffect(() => { updateAdminBlogPosts(localBlogPosts); }, [localBlogPosts, updateAdminBlogPosts]);
-  useEffect(() => { localStorage.setItem('kumo_admin_flash', JSON.stringify(flashCampaigns)); }, [flashCampaigns]);
+  // Load Initial Data from DB
+  useEffect(() => {
+    getAllUsersAction().then(res => {
+      if (res.success && res.users) {
+        setAdminUsers(res.users.filter((u: any) => u.role !== 'admin'));
+        setBlockedUsers(res.users.filter((u: any) => u.isBlocked).map((u: any) => u.id));
+      }
+    });
+    getBlogPostsAction().then(posts => {
+      setLocalBlogPosts(posts);
+      updateAdminBlogPosts(posts);
+    });
+    getSettingAction('flashCampaigns', []).then(campaigns => {
+      setFlashCampaigns(campaigns && campaigns.length > 0 ? campaigns : defaultFlash);
+    });
+  }, [updateAdminBlogPosts]);
 
   // Sync real orders from context
   useEffect(() => {
@@ -286,14 +283,27 @@ export default function AdminPage() {
   };
 
   // Orders handlers
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setLocalOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    const res = await updateOrderStatusAction(orderId, newStatus);
+    if (res.success) {
+      setLocalOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      showNotification('Đã cập nhật trạng thái đơn hàng', 'success');
+    } else {
+      showNotification(res.error || 'Lỗi cập nhật trạng thái', 'error');
+    }
     setUpdatingOrder(null);
   };
 
   // Users handlers
-  const toggleBlockUser = (userId: string) => {
-    setBlockedUsers(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+  const toggleBlockUser = async (userId: string) => {
+    const isCurrentlyBlocked = blockedUsers.includes(userId);
+    const res = await toggleUserBlockAction(userId, !isCurrentlyBlocked);
+    if (res.success) {
+      setBlockedUsers(prev => isCurrentlyBlocked ? prev.filter(id => id !== userId) : [...prev, userId]);
+      showNotification(isCurrentlyBlocked ? 'Đã mở khóa người dùng' : 'Đã khóa người dùng', 'info');
+    } else {
+      showNotification(res.error || 'Lỗi xử lý', 'error');
+    }
   };
 
   // Blog handlers
@@ -307,17 +317,30 @@ export default function AdminPage() {
     setEditingBlog(post.id);
     setShowBlogModal(true);
   };
-  const saveBlog = () => {
+  const saveBlog = async () => {
     if (editingBlog) {
-      setLocalBlogPosts(prev => prev.map(p => p.id === editingBlog ? { ...p, ...blogForm } : p));
+      const res = await updateBlogAction(editingBlog, blogForm);
+      if (res.success) {
+        setLocalBlogPosts(prev => prev.map(p => p.id === editingBlog ? { ...p, ...blogForm } : p));
+        showNotification('Đã cập nhật bài viết', 'success');
+      }
     } else {
-      const newPost = { ...blogForm, id: Date.now().toString(36), slug: blogForm.title.toLowerCase().replace(/\s+/g, '-'), excerpt: blogForm.content.slice(0, 120) + '...', authorAvatar: '', date: new Date().toISOString().split('T')[0], readTime: Math.ceil(blogForm.content.length / 800), tags: [] };
-      setLocalBlogPosts(prev => [newPost, ...prev]);
+      const res = await createBlogAction(blogForm);
+      if (res.success && res.post) {
+        setLocalBlogPosts(prev => [res.post, ...prev]);
+        showNotification('Đã tạo bài viết mới', 'success');
+      }
     }
     setShowBlogModal(false);
     setEditingBlog(null);
   };
-  const deleteBlog = (id: string) => setLocalBlogPosts(prev => prev.filter(p => p.id !== id));
+  const deleteBlog = async (id: string) => {
+    const res = await deleteBlogAction(id);
+    if (res.success) {
+       setLocalBlogPosts(prev => prev.filter(p => p.id !== id));
+       showNotification('Đã xóa bài viết', 'info');
+    }
+  };
 
   // Flash sales handlers
   const openAddFlash = () => {
@@ -331,16 +354,23 @@ export default function AdminPage() {
     setShowFlashModal(true);
   };
   const saveFlash = () => {
+    let updated;
     if (editingFlash) {
-      setFlashCampaigns(prev => prev.map(c => c.id === editingFlash ? { ...c, name: flashForm.name, products: flashForm.products, discount: flashForm.discount } : c));
+      updated = flashCampaigns.map(c => c.id === editingFlash ? { ...c, name: flashForm.name, products: flashForm.products, discount: flashForm.discount } : c);
     } else {
-      setFlashCampaigns(prev => [...prev, { id: Date.now().toString(36), name: flashForm.name, status: 'Đã lên lịch', products: flashForm.products, discount: flashForm.discount, ends: 'Sắp tới', revenue: '—' }]);
+      updated = [...flashCampaigns, { id: Date.now().toString(36), name: flashForm.name, status: 'Đã lên lịch', products: flashForm.products, discount: flashForm.discount, ends: 'Sắp tới', revenue: '—' }];
     }
+    setFlashCampaigns(updated);
+    saveSettingAction('flashCampaigns', updated);
     setShowFlashModal(false);
     setEditingFlash(null);
+    showNotification('Đã lưu chiến dịch giảm giá', 'success');
   };
   const endFlashCampaign = (id: string) => {
-    setFlashCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'Đã kết thúc', ends: 'Đã kết thúc' } : c));
+    const updated = flashCampaigns.map(c => c.id === id ? { ...c, status: 'Đã kết thúc', ends: 'Đã kết thúc' } : c);
+    setFlashCampaigns(updated);
+    saveSettingAction('flashCampaigns', updated);
+    showNotification('Đã kết thúc chiến dịch', 'info');
   };
 
   // Points handlers

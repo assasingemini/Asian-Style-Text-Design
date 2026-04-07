@@ -3,8 +3,11 @@ import { Product, products as defaultProducts } from '../data/products';
 import { AboutContent, defaultAboutContent } from '../data/aboutDefaults';
 import { blogPosts as defaultBlogPosts } from '../data/blog';
 import { login as loginAction, registerUser as registerAction, getSession as getSessionAction, logout as logoutAction } from '@/actions/authActions';
-import { createOrder as createOrderAction } from '@/actions/orderActions';
+import { createOrder as createOrderAction, getUserOrders as getUserOrdersAction, getAllOrders as getAllOrdersAction } from '@/actions/orderActions';
 import { getProducts as getProductsAction } from '@/actions/productActions';
+import { getSetting as getSettingAction, saveSetting as saveSettingAction } from '@/actions/settingActions';
+import { getBlogPosts as getBlogPostsAction } from '@/actions/blogActions';
+import { updateUserPoints, updateUserCart, updateUserWishlist } from '@/actions/userActions';
 
 export interface CartItem {
   product: Product;
@@ -22,7 +25,10 @@ export interface User {
   joinDate: string;
   totalOrders: number;
   role: 'customer' | 'admin';
-  password: string;
+  password?: string;
+  isBlocked?: boolean;
+  cart?: string;
+  wishlist?: string;
 }
 
 export interface Order {
@@ -218,48 +224,88 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Initial fetch from session
     getSessionAction().then(session => {
-       if (session) {
-         setUser({ 
-           ...defaultAdmin, 
-           id: session.id as string, 
-           name: session.name as string, 
-           email: session.email as string, 
-           role: session.role as any 
-         });
-         setIsLoggedIn(true);
-       }
+      if (session) {
+        const userData: User = { 
+          ...defaultAdmin, 
+          id: session.id as string, 
+          name: session.name as string, 
+          email: session.email as string, 
+          role: session.role as any,
+          points: (session as any).points || 0,
+          isBlocked: (session as any).isBlocked || false,
+          cart: (session as any).cart || '',
+          wishlist: (session as any).wishlist || ''
+        };
+        setUser(userData);
+        setIsLoggedIn(true);
+
+        // Sync cart and wishlist from DB if available
+        if (userData.cart) {
+          try { setCart(JSON.parse(userData.cart)); } catch(e) { console.error("Error parsing cart from DB", e); }
+        } else {
+          setCart(getFromStorage(STORAGE_KEYS.CART, []));
+        }
+
+        if (userData.wishlist) {
+          try { setWishlist(JSON.parse(userData.wishlist)); } catch(e) { console.error("Error parsing wishlist from DB", e); }
+        } else {
+          setWishlist(getFromStorage(STORAGE_KEYS.WISHLIST, []));
+        }
+
+        if (session.role === 'admin') {
+          getAllOrdersAction().then(res => setOrders((res.orders as any) || []));
+        } else {
+          getUserOrdersAction().then(res => setOrders((res as any) || []));
+        }
+      } else {
+        setCart(getFromStorage(STORAGE_KEYS.CART, []));
+        setWishlist(getFromStorage(STORAGE_KEYS.WISHLIST, []));
+      }
     });
 
-    // Load other state
-    setCart(getFromStorage(STORAGE_KEYS.CART, []));
-    setWishlist(getFromStorage(STORAGE_KEYS.WISHLIST, []));
-    setOrders(getFromStorage(STORAGE_KEYS.ORDERS, []));
-    setPointsConfig(getFromStorage(STORAGE_KEYS.POINTS_CONFIG, defaultPointsConfig));
-    setRewardItems(getFromStorage(STORAGE_KEYS.REWARDS, defaultRewards));
-    setPaymentSettings(getFromStorage(STORAGE_KEYS.PAYMENTS, defaultPaymentSettings));
-    setAboutContent(getFromStorage(STORAGE_KEYS.ABOUT, defaultAboutContent));
-    setBlogPosts(getFromStorage(STORAGE_KEYS.BLOG_POSTS, defaultBlogPosts));
+    // Fetch universal/admin state from DataBase
+    Promise.all([
+      getProductsAction(),
+      getBlogPostsAction(),
+      getSettingAction('pointsConfig', defaultPointsConfig),
+      getSettingAction('rewardItems', defaultRewards),
+      getSettingAction('paymentSettings', defaultPaymentSettings),
+      getSettingAction('aboutContent', defaultAboutContent)
+    ]).then(([dbProducts, dbBlogs, pointsCfg, rewards, payments, about]) => {
+      if (dbProducts && dbProducts.length > 0) setProducts(dbProducts as any);
+      else setProducts(defaultProducts);
 
-    // Fetch products from Real Database
-    getProductsAction().then((dbProducts) => {
-      if (dbProducts && dbProducts.length > 0) {
-        setProducts(dbProducts as any);
-      } else {
-        setProducts(defaultProducts);
-      }
+      if (dbBlogs && dbBlogs.length > 0) setBlogPosts(dbBlogs as any);
+      else setBlogPosts(defaultBlogPosts);
+
+      setPointsConfig(pointsCfg);
+      setRewardItems(rewards);
+      setPaymentSettings(payments);
+      setAboutContent(about);
+
       setInitialized(true);
     });
   }, []);
 
   // Persist cart
   useEffect(() => {
-    if (initialized) setToStorage(STORAGE_KEYS.CART, cart);
-  }, [cart, initialized]);
+    if (initialized) {
+      setToStorage(STORAGE_KEYS.CART, cart);
+      if (isLoggedIn && user?.id) {
+        updateUserCart(user.id, JSON.stringify(cart));
+      }
+    }
+  }, [cart, initialized, isLoggedIn, user?.id]);
 
   // Persist wishlist
   useEffect(() => {
-    if (initialized) setToStorage(STORAGE_KEYS.WISHLIST, wishlist);
-  }, [wishlist, initialized]);
+    if (initialized) {
+      setToStorage(STORAGE_KEYS.WISHLIST, wishlist);
+      if (isLoggedIn && user?.id) {
+        updateUserWishlist(user.id, JSON.stringify(wishlist));
+      }
+    }
+  }, [wishlist, initialized, isLoggedIn, user?.id]);
 
   // Persist orders
   useEffect(() => {
@@ -458,6 +504,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       totalOrders: user.totalOrders + 1,
     };
     persistUser(updatedUser);
+    
+    // Sync points to DB
+    updateUserPoints(user.id, updatedUser.points);
 
     showNotification(`Bạn nhận được ${earned} điểm từ đơn hàng này!`, 'success');
     return earned;
@@ -473,6 +522,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       points: user.points - points,
     };
     persistUser(updatedUser);
+
+    // Sync points to DB
+    updateUserPoints(user.id, updatedUser.points);
+
     showNotification(`${points} điểm đã được đổi thành công!`, 'success');
     return true;
   }, [user, persistUser, showNotification]);
@@ -480,7 +533,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ADMIN: Points Config
   const updatePointsConfig = useCallback((config: PointsRule[]) => {
     setPointsConfig(config);
-    setToStorage(STORAGE_KEYS.POINTS_CONFIG, config);
+    saveSettingAction('pointsConfig', config);
     showNotification('Đã cập nhật cấu hình điểm thưởng', 'success');
   }, [showNotification]);
 
@@ -488,7 +541,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateAboutContent = useCallback((updates: Partial<AboutContent>) => {
     setAboutContent(prev => {
       const updated = { ...prev, ...updates };
-      setToStorage(STORAGE_KEYS.ABOUT, updated);
+      saveSettingAction('aboutContent', updated);
       return updated;
     });
     showNotification('Đã cập nhật nội dung trang Giới thiệu', 'success');
@@ -498,7 +551,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updatePaymentSettings = useCallback((updates: Partial<PaymentSettings>) => {
     setPaymentSettings(prev => {
       const updated = { ...prev, ...updates };
-      setToStorage(STORAGE_KEYS.PAYMENTS, updated);
+      saveSettingAction('paymentSettings', updated);
       return updated;
     });
     showNotification('Đã cập nhật cấu hình thanh toán', 'success');
@@ -509,7 +562,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newItem: RewardItem = { ...item, id: generateId() };
     setRewardItems(prev => {
       const updated = [...prev, newItem];
-      setToStorage(STORAGE_KEYS.REWARDS, updated);
+      saveSettingAction('rewardItems', updated);
       return updated;
     });
     showNotification('Đã thêm phần thưởng mới', 'success');
@@ -518,7 +571,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateRewardItem = useCallback((id: string, updates: Partial<RewardItem>) => {
     setRewardItems(prev => {
       const updated = prev.map(item => item.id === id ? { ...item, ...updates } : item);
-      setToStorage(STORAGE_KEYS.REWARDS, updated);
+      saveSettingAction('rewardItems', updated);
       return updated;
     });
     showNotification('Đã cập nhật phần thưởng', 'success');
@@ -527,7 +580,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteRewardItem = useCallback((id: string) => {
     setRewardItems(prev => {
       const updated = prev.filter(item => item.id !== id);
-      setToStorage(STORAGE_KEYS.REWARDS, updated);
+      saveSettingAction('rewardItems', updated);
       return updated;
     });
     showNotification('Đã xóa phần thưởng', 'info');
@@ -539,7 +592,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateAdminBlogPosts = useCallback((newPosts: typeof defaultBlogPosts) => {
     setBlogPosts(newPosts);
-    setToStorage(STORAGE_KEYS.BLOG_POSTS, newPosts);
   }, []);
 
   return (

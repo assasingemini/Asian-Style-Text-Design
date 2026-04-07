@@ -56,6 +56,9 @@ model User {
   joinDate    DateTime @default(now())
   totalOrders Int      @default(0)
   orders      Order[]
+  isBlocked   Boolean  @default(false)
+  cart        String?   @db.Text
+  wishlist    String?   @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -96,5 +99,11 @@ model BlogPost {
   readTime  Int
   tags      String[]
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
   updatedAt DateTime @updatedAt
 }
