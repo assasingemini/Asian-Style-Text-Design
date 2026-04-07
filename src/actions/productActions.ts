@@ -134,8 +134,8 @@ export async function deleteProduct(id: string) {
       where: { id },
     });
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting product:", error);
-    return { success: false, error: "Lỗi xóa sản phẩm" };
+    return { success: false, error: "Lỗi nội bộ DB: " + (error.message || String(error)) };
   }
 }
