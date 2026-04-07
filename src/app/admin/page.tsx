@@ -152,8 +152,13 @@ export default function AdminPage() {
       }
     });
     getBlogPostsAction().then(posts => {
-      setLocalBlogPosts(posts);
-      updateAdminBlogPosts(posts);
+      const mappedPosts = posts.map((p: any) => ({
+        ...p,
+        authorAvatar: (p as any).authorAvatar || '',
+        date: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      }));
+      setLocalBlogPosts(mappedPosts);
+      updateAdminBlogPosts(mappedPosts);
     });
     getSettingAction('flashCampaigns', []).then(campaigns => {
       setFlashCampaigns(campaigns && campaigns.length > 0 ? campaigns : defaultFlash);
