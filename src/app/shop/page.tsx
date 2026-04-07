@@ -122,7 +122,7 @@ function ProductList() {
                   : 'border-transparent text-black/40 hover:text-black hover:border-black/20'
               }`}
             >
-              {cat.name} ({cat.count})
+              {cat.name}
             </button>
           ))}
         </div>
