@@ -429,6 +429,14 @@ export default function AdminPage() {
     }));
   };
 
+  const isProductInOtherActiveCampaign = (productId: string) => {
+    return flashSaleCampaigns.some(c => 
+      c.id !== editingFlash && 
+      c.isActive && 
+      c.products.some(p => p.productId === productId)
+    );
+  };
+
   // Points & Rewards handlers
   const handlePointsRuleChange = (index: number, field: 'minPrice' | 'points', value: number) => {
     const updated = [...editingPoints];
@@ -602,11 +610,11 @@ export default function AdminPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead><tr className="border-b border-black/10">{['Mã đơn hàng','Khách hàng','Sản phẩm','Tổng cộng','Ngày','Trạng thái'].map(h=><th key={h} className="text-left pb-3 text-[9px] tracking-[0.25em] uppercase text-black/40 font-normal pr-6">{h}</th>)}</tr></thead>
-                    <tbody>{localOrders.slice(0, 5).map(order=>(
+                    <tbody>{orders.slice(0, 5).map(order=>(
                       <tr key={order.id} className="border-b border-black/5 hover:bg-black/2 transition-colors">
                         <td className="py-3.5 pr-6 font-medium tracking-wide">{order.id}</td>
-                        <td className="py-3.5 pr-6 text-black/70">{order.customer}</td>
-                        <td className="py-3.5 pr-6 text-black/50">{order.items} sản phẩm</td>
+                        <td className="py-3.5 pr-6 text-black/70">{order.customerName || 'Khách hàng'}</td>
+                        <td className="py-3.5 pr-6 text-black/50">{order.items?.length || 0} sản phẩm</td>
                         <td className="py-3.5 pr-6 font-['Cormorant_Garamond'] text-base">{formatPrice(order.total)}</td>
                         <td className="py-3.5 pr-6 text-black/40">{order.date}</td>
                         <td className="py-3.5"><span className={statusBadge(order.status)}>{order.status}</span></td>
@@ -638,7 +646,7 @@ export default function AdminPage() {
                         <td className="px-6 py-4 font-['Cormorant_Garamond'] text-base">{formatPrice(product.price)}</td>
                         <td className="px-6 py-4"><span className={`text-[9px] tracking-wider px-2 py-1 ${product.stock <= 5 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{product.stock} chiếc</span></td>
                         <td className="px-6 py-4"><div className="flex gap-1 flex-wrap">{product.isNew && <span className="text-[9px] tracking-wider bg-black text-white px-1.5 py-0.5">Mới</span>}{product.isBestseller && <span className="text-[9px] tracking-wider bg-gray-100 px-1.5 py-0.5">Bán chạy</span>}{product.isFlashSale && <span className="text-[9px] tracking-wider bg-red-100 text-red-700 px-1.5 py-0.5">Sale</span>}</div></td>
-                        <td className="px-6 py-4"><div className="flex gap-2"><button onClick={() => openEditProduct(product)} className="w-7 h-7 border border-black/15 flex items-center justify-center hover:border-black transition-colors"><Pencil size={11} /></button><button onClick={() => confirmDeleteProduct(product.id)} className="w-7 h-7 border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors text-red-400"><Trash2 size={11} /></button></div></td>
+                        <td className="px-6 py-4"><div className="flex gap-2"><button onClick={() => openEditProduct(product)} className="w-7 h-7 border border-black/15 flex items-center justify-center hover:border-black transition-colors"><Pencil size={11} /></button><button onClick={() => setDeletingProduct(product.id)} className="w-7 h-7 border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors text-red-400"><Trash2 size={11} /></button></div></td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -683,7 +691,7 @@ export default function AdminPage() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setDeletingProduct(null)}>
                     <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
                       <h3 className="font-['Cormorant_Garamond'] text-xl mb-2">Xác nhận xóa</h3>
-                      <p className="text-sm text-black/50 mb-6">Bạn có chắc chắn muốn xóa sản phẩm <strong>{localProducts.find(p => p.id === deletingProduct)?.name}</strong>? Hành động này không thể hoàn tác.</p>
+                      <p className="text-sm text-black/50 mb-6">Bạn có chắc chắn muốn xóa sản phẩm <strong>{adminProducts.find(p => p.id === deletingProduct)?.name}</strong>? Hành động này không thể hoàn tác.</p>
                       <div className="flex gap-3 justify-end">
                         <button onClick={() => setDeletingProduct(null)} className="px-5 py-2.5 border border-black/20 text-xs tracking-[0.2em] uppercase hover:border-black transition-colors">Hủy</button>
                         <button onClick={executeDeleteProduct} className="px-5 py-2.5 bg-red-600 text-white text-xs tracking-[0.2em] uppercase hover:bg-red-700 transition-colors">Xóa</button>
@@ -974,7 +982,7 @@ export default function AdminPage() {
                         <div>
                           <label className={labelCls}>Chọn sản phẩm ({flashForm.products.length})</label>
                           <div className="border border-black/10 max-h-60 overflow-y-auto mt-2">
-                            {localProducts.map(product => {
+                            {adminProducts.map(product => {
                               const inCampaign = flashForm.products.find(p => p.productId === product.id);
                               const takenByOther = isProductInOtherActiveCampaign(product.id);
                               

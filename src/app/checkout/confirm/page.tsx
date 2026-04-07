@@ -1,18 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Package, ArrowRight, ShoppingBag } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../../context/AppContext';
 
-export default function ConfirmPage() {
+function OrderConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderIdFromUrl = searchParams.get('id');
   const [orderId, setOrderId] = useState(orderIdFromUrl || 'ORD-' + Math.random().toString(36).substr(2, 9).toUpperCase());
-  const { user, pointsConfig } = useApp();
+  const { user } = useApp();
   const [pointsEarned, setPointsEarned] = useState(0);
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function ConfirmPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/account" className="w-full sm:w-auto bg-black text-white text-[10px] tracking-[0.3em] uppercase px-12 py-5 hover:bg-black/90 transition-all flex items-center justify-center gap-3">
+            <Link href="/account" className="w-full sm:w-auto bg-black text-white text-[10px] tracking-[0.3em] uppercase px-12 py-5 hover:bg-black/90 transition-all flex items-center justify-center gap-3 text-center">
               Quản lý đơn hàng <Package size={14} />
             </Link>
             <Link href="/shop" className="w-full sm:w-auto border border-black text-black text-[10px] tracking-[0.3em] uppercase px-12 py-5 hover:bg-black hover:text-white transition-all flex items-center justify-center gap-3 text-center">
@@ -79,5 +79,17 @@ export default function ConfirmPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function ConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FBFBFB] pt-32 pb-20 px-6 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin" />
+      </div>
+    }>
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }
