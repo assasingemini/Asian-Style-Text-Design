@@ -20,6 +20,8 @@ import { createBlogPost as createBlogAction, updateBlogPost as updateBlogAction,
 import { updateOrderStatus as updateOrderStatusAction } from '@/actions/orderActions';
 import { getAllUsers as getAllUsersAction, toggleUserBlock as toggleUserBlockAction } from '@/actions/userActions';
 import { getSetting as getSettingAction, saveSetting as saveSettingAction } from '@/actions/settingActions';
+import { OrderDetailsModal } from '../components/order/OrderDetailsModal';
+import { Order } from '../context/AppContext';
 
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about' | 'payments';
 
@@ -83,80 +85,82 @@ const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb
 
 export default function AdminPage() {
   const navigate = useRouter();
-  const { 
-    isLoggedIn, isAdmin, orders, products, pointsConfig, rewardItems, 
-    updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, 
-    aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, 
-    updateAdminProducts, updateAdminBlogPosts, showNotification,
-    flashSaleCampaigns, addFlashCampaign, updateFlashCampaign, deleteFlashCampaign,
-    initialized 
+  const {
+    products: adminProducts, orders, blogPosts: adminBlogPosts, updateAdminProducts, updateAdminBlogPosts,
+    updateAboutContent, aboutContent, updatePaymentSettings, paymentSettings, rewardItems, updateRewardItem, deleteRewardItem,
+    addRewardItem, deleteAdminOrder, deleteAdminUser, flashSaleCampaigns, addFlashCampaign, updateFlashCampaign, deleteFlashCampaign,
+    isLoggedIn, isAdmin, pointsConfig, updatePointsConfig, showNotification, initialized 
   } = useApp();
+
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+
+  // Product states
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
   const [productForm, setProductForm] = useState({
     name: '', price: 0, originalPrice: 0, stock: 0, category: 'Áo khoác',
     subcategory: '', description: '', images: [''], sizes: ['S', 'M', 'L', 'XL'],
     colors: ['Đen'], isNew: false, isBestseller: false
   });
 
-  // Points config state
-  const [editingPoints, setEditingPoints] = useState<PointsRule[]>(pointsConfig);
-  const [pointsChanged, setPointsChanged] = useState(false);
+  // Order states
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
+  const [updatingOrder, setUpdatingOrder] = useState<Order | null>(null);
 
-  // Rewards state
+  // User states
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [viewingUser, setViewingUser] = useState<any | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+
+  // Blog states
+  const [showBlogModal, setShowBlogModal] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<string | null>(null);
+  const [localBlogPosts, setLocalBlogPosts] = useState<any[]>([]);
+  const [blogForm, setBlogForm] = useState({ title: '', category: '', author: '', content: '', image: '' });
+
+  // Points & Rewards states
+  const [editingPoints, setEditingPoints] = useState<PointsRule[]>([]);
+  const [pointsChanged, setPointsChanged] = useState(false);
   const [showAddReward, setShowAddReward] = useState(false);
   const [editingReward, setEditingReward] = useState<string | null>(null);
   const [rewardForm, setRewardForm] = useState<Omit<RewardItem, 'id'>>({
     name: '', points: 0, type: 'voucher', value: 0, description: '', active: true
   });
 
-  // About content editing state
+  // About states
   const [editingAbout, setEditingAbout] = useState<AboutContent>(aboutContent);
   const [aboutChanged, setAboutChanged] = useState(false);
   const [aboutSection, setAboutSection] = useState('hero');
 
-  // Orders state - sync with real orders from context
-  const [viewingOrder, setViewingOrder] = useState<{ id: string; customer: string; total: number; status: string; date: string; items: number } | null>(null);
-  const [updatingOrder, setUpdatingOrder] = useState<{ id: string; customer: string; total: number; status: string; date: string; items: number } | null>(null);
-  const [localOrders, setLocalOrders] = useState(mockOrders);
-
-  // Users state
-  const [adminUsers, setAdminUsers] = useState<any[]>([]);
-  const [viewingUser, setViewingUser] = useState<any | null>(null);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
-
-  // Blog state
-  const [showBlogModal, setShowBlogModal] = useState(false);
-  const [editingBlog, setEditingBlog] = useState<string | null>(null);
-  const [localBlogPosts, setLocalBlogPosts] = useState<any[]>([]);
-  const [blogForm, setBlogForm] = useState({ title: '', category: '', author: '', content: '', image: '' });
-
-  // Flash sales state
+  // Flash states
   const [showFlashModal, setShowFlashModal] = useState(false);
   const [editingFlash, setEditingFlash] = useState<string | null>(null);
   const [flashForm, setFlashForm] = useState<Omit<FlashSaleCampaign, 'id'>>({
     name: '',
-    endDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16), // tomorrow
+    endDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
     isActive: true,
     products: []
   });
 
-  const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
-  const localProducts = products;
-
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
+  useEffect(() => { setEditingPoints(pointsConfig); }, [pointsConfig]);
 
-  // Load Initial Data from DB
+  // Initial Data Fetching
   useEffect(() => {
+    if (!initialized) return;
+
     getAllUsersAction().then(res => {
       if (res.success && res.users) {
         setAdminUsers(res.users.filter((u: any) => u.role !== 'admin'));
         setBlockedUsers(res.users.filter((u: any) => u.isBlocked).map((u: any) => u.id));
       }
     });
+
     getBlogPostsAction().then((posts: any[]) => {
       const mappedPosts = posts.map((p: any) => ({
         ...p,
@@ -166,19 +170,7 @@ export default function AdminPage() {
       setLocalBlogPosts(mappedPosts);
       updateAdminBlogPosts(mappedPosts);
     });
-  }, [updateAdminBlogPosts]);
-
-  // Sync real orders from context
-  useEffect(() => {
-    if (orders.length > 0) {
-      const adminOrders = orders.map((o: any) => ({
-        id: o.id, customer: o.customerName || 'Khách hàng',
-        total: o.total, status: o.status, date: o.date,
-        items: Array.isArray(o.items) ? o.items.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0,
-      }));
-      setLocalOrders(adminOrders);
-    }
-  }, [orders]);
+  }, [initialized, updateAdminBlogPosts]);
 
   const updateEA = (updates: Partial<AboutContent>) => {
     setEditingAbout(prev => ({ ...prev, ...updates }));
@@ -188,9 +180,9 @@ export default function AdminPage() {
   const saveAboutContent = () => {
     updateAboutContent(editingAbout);
     setAboutChanged(false);
+    showNotification('Đã cập nhật trang Giới thiệu', 'success');
   };
 
-  // Loading state
   if (!initialized) {
     return (
       <div className="min-h-screen pt-16 flex flex-col items-center justify-center bg-white">
@@ -200,7 +192,6 @@ export default function AdminPage() {
     );
   }
 
-  // Access control
   if (!isLoggedIn || !isAdmin) {
     return (
       <div className="min-h-screen pt-16 flex items-center justify-center bg-white px-6">
@@ -216,30 +207,28 @@ export default function AdminPage() {
     );
   }
 
-  const filteredProducts = localProducts.filter(p =>
+  const filteredProducts = adminProducts.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const stats = [
     { label: 'Tổng doanh thu', value: '₫471,000,000', change: '+18.4%', positive: true, icon: DollarSign },
-    { label: 'Đơn hàng tháng này', value: '289', change: '+12.1%', positive: true, icon: ShoppingCart },
-    { label: 'Khách hàng mới', value: '1,847', change: '+5.6%', positive: true, icon: Users },
-    { label: 'Sản phẩm đang bán', value: localProducts.length.toString(), change: '+2', positive: true, icon: Package },
+    { label: 'Đơn hàng tháng này', value: orders.length.toString(), change: '+12.1%', positive: true, icon: ShoppingCart },
+    { label: 'Khách hàng mới', value: adminUsers.length.toString(), change: '+5.6%', positive: true, icon: Users },
+    { label: 'Sản phẩm đang bán', value: adminProducts.length.toString(), change: '+2', positive: true, icon: Package },
   ];
 
-  // Product CRUD handlers
-  const confirmDeleteProduct = (id: string) => setDeletingProduct(id);
+  // Product CRUD
   const executeDeleteProduct = async () => {
-    if (deletingProduct) {
-      const res = await deleteProductAction(deletingProduct);
-      if (res.success) {
-        updateAdminProducts(products.filter(p => p.id !== deletingProduct));
-        showNotification('Đã xóa sản phẩm thành công', 'success');
-      } else {
-        showNotification(res.error || 'Lỗi khi xóa sản phẩm', 'error');
-      }
+    if (!deletingProduct) return;
+    const res = await deleteProductAction(deletingProduct);
+    if (res.success) {
+      updateAdminProducts(adminProducts.filter(p => p.id !== deletingProduct));
+      showNotification('Đã xóa sản phẩm thành công', 'success');
       setDeletingProduct(null);
+    } else {
+      showNotification(res.error || 'Lỗi khi xóa sản phẩm', 'error');
     }
   };
 
@@ -278,7 +267,8 @@ export default function AdminPage() {
       };
       const res = await updateProductAction(editingProduct, updatedData);
       if (res.success && res.product) {
-        updateAdminProducts(products.map(p => p.id === editingProduct ? { ...p, ...(res.product as any) } : p));
+        updateAdminProducts(adminProducts.map(p => p.id === editingProduct ? { ...p, ...(res.product as any) } : p));
+        showNotification('Đã cập nhật sản phẩm', 'success');
       }
     } else {
       const newProductData = {
@@ -293,7 +283,8 @@ export default function AdminPage() {
       };
       const res = await createProductAction(newProductData);
       if (res.success && res.product) {
-        updateAdminProducts([res.product as any, ...products]);
+        updateAdminProducts([res.product as any, ...adminProducts]);
+        showNotification('Đã thêm sản phẩm mới', 'success');
       }
     }
     setShowAddProduct(false);
@@ -301,10 +292,17 @@ export default function AdminPage() {
   };
 
   // Orders handlers
+  const executeDeleteOrder = async () => {
+    if (!deletingOrder) return;
+    const success = await deleteAdminOrder(deletingOrder);
+    if (success) {
+      setDeletingOrder(null);
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     const res = await updateOrderStatusAction(orderId, newStatus);
     if (res.success) {
-      setLocalOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
       showNotification('Đã cập nhật trạng thái đơn hàng', 'success');
     } else {
       showNotification(res.error || 'Lỗi cập nhật trạng thái', 'error');
@@ -313,6 +311,15 @@ export default function AdminPage() {
   };
 
   // Users handlers
+  const executeDeleteUser = async () => {
+    if (!deletingUser) return;
+    const success = await deleteAdminUser(deletingUser);
+    if (success) {
+      setAdminUsers(prev => prev.filter(u => u.id !== deletingUser));
+      setDeletingUser(null);
+    }
+  };
+
   const toggleBlockUser = async (userId: string) => {
     const isCurrentlyBlocked = blockedUsers.includes(userId);
     const res = await toggleUserBlockAction(userId, !isCurrentlyBlocked);
@@ -330,7 +337,7 @@ export default function AdminPage() {
     setEditingBlog(null);
     setShowBlogModal(true);
   };
-  const openEditBlog = (post: typeof blogPosts[0]) => {
+  const openEditBlog = (post: any) => {
     setBlogForm({ title: post.title, category: post.category, author: post.author, content: post.content, image: post.image });
     setEditingBlog(post.id);
     setShowBlogModal(true);
@@ -402,16 +409,6 @@ export default function AdminPage() {
     setEditingFlash(null);
   };
 
-  const isProductInOtherActiveCampaign = (productId: string) => {
-    const now = new Date();
-    return flashSaleCampaigns.some((c: FlashSaleCampaign) => 
-      c.id !== editingFlash && 
-      c.isActive && 
-      new Date(c.endDate) > now && 
-      c.products.some((p: FlashSaleProduct) => p.productId === productId)
-    );
-  };
-
   const toggleProductInCampaign = (product: Product) => {
     setFlashForm(prev => {
       const exists = prev.products.some((p: FlashSaleProduct) => p.productId === product.id);
@@ -432,7 +429,7 @@ export default function AdminPage() {
     }));
   };
 
-  // Points handlers
+  // Points & Rewards handlers
   const handlePointsRuleChange = (index: number, field: 'minPrice' | 'points', value: number) => {
     const updated = [...editingPoints];
     updated[index] = { ...updated[index], [field]: value };
@@ -458,9 +455,9 @@ export default function AdminPage() {
   const savePointsConfig = () => {
     updatePointsConfig(editingPoints);
     setPointsChanged(false);
+    showNotification('Đã cập nhật cấu hình điểm', 'success');
   };
 
-  // Rewards handlers
   const openAddReward = () => {
     setRewardForm({ name: '', points: 0, type: 'voucher', value: 0, description: '', active: true });
     setShowAddReward(true);
@@ -706,44 +703,40 @@ export default function AdminPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead><tr className="border-b border-black/10 bg-[#F8F8F6]">{['Mã đơn hàng','Khách hàng','Sản phẩm','Tổng cộng','Ngày','Trạng thái','Thao tác'].map(h=><th key={h} className="text-left px-6 py-4 text-[9px] tracking-[0.25em] uppercase text-black/40 font-normal">{h}</th>)}</tr></thead>
-                    <tbody>{localOrders.map(order=>(
+                    <tbody>{orders.map(order=>(
                       <tr key={order.id} className="border-b border-black/5 hover:bg-black/2 transition-colors">
                         <td className="px-6 py-4 font-medium tracking-wide">{order.id}</td>
-                        <td className="px-6 py-4 text-black/70">{order.customer}</td>
-                        <td className="px-6 py-4 text-black/50">{order.items}</td>
+                        <td className="px-6 py-4 text-black/70">{order.customerName || 'Khách hàng'}</td>
+                        <td className="px-6 py-4 text-black/50">{Array.isArray(order.items) ? order.items.reduce((sum: number, i: any) => sum + i.quantity, 0) : 0}</td>
                         <td className="px-6 py-4 font-['Cormorant_Garamond'] text-base">{formatPrice(order.total)}</td>
                         <td className="px-6 py-4 text-black/40">{order.date}</td>
                         <td className="px-6 py-4"><span className={statusBadge(order.status)}>{order.status}</span></td>
                         <td className="px-6 py-4"><div className="flex gap-2">
-                          <button onClick={() => setViewingOrder(order)} className="text-[9px] tracking-wider border border-black/20 px-2.5 py-1 hover:border-black transition-colors">Xem</button>
-                          <button onClick={() => setUpdatingOrder(order)} className="text-[9px] tracking-wider border border-black/20 px-2.5 py-1 hover:border-black transition-colors">Cập nhật</button>
+                          <button onClick={() => setViewingOrder(order)} className="w-8 h-8 flex items-center justify-center border border-black/15 hover:border-black transition-colors" title="Xem chi tiết"><Eye size={12} /></button>
+                          <button onClick={() => setUpdatingOrder(order)} className="w-8 h-8 flex items-center justify-center border border-black/15 hover:border-black transition-colors" title="Cập nhật trạng thái"><Pencil size={12} /></button>
+                          <button onClick={() => setDeletingOrder(order.id)} className="w-8 h-8 flex items-center justify-center border border-red-200 text-red-500 hover:bg-red-50 transition-colors" title="Xóa đơn hàng"><Trash2 size={12} /></button>
                         </div></td>
                       </tr>
                     ))}</tbody>
                   </table>
                 </div>
               </div>
-              {/* View Order Modal */}
+              <OrderDetailsModal 
+                order={viewingOrder} 
+                isOpen={!!viewingOrder} 
+                onClose={() => setViewingOrder(null)} 
+                isAdminView={true}
+              />
+              {/* Order Delete Confirmation */}
               <AnimatePresence>
-                {viewingOrder && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setViewingOrder(null)}>
-                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }} className="bg-white w-full max-w-md" onClick={e => e.stopPropagation()}>
-                      <div className="p-6 border-b border-black/10 flex items-center justify-between">
-                        <h2 className="font-['Cormorant_Garamond'] text-2xl">Chi tiết đơn hàng</h2>
-                        <button onClick={() => setViewingOrder(null)}><X size={18} /></button>
-                      </div>
-                      <div className="p-6 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div><p className={labelCls}>Mã đơn hàng</p><p className="text-sm font-medium">{viewingOrder.id}</p></div>
-                          <div><p className={labelCls}>Khách hàng</p><p className="text-sm font-medium">{viewingOrder.customer}</p></div>
-                          <div><p className={labelCls}>Tổng cộng</p><p className="text-sm font-['Cormorant_Garamond'] text-lg">{formatPrice(viewingOrder.total)}</p></div>
-                          <div><p className={labelCls}>Số sản phẩm</p><p className="text-sm font-medium">{viewingOrder.items} sản phẩm</p></div>
-                          <div><p className={labelCls}>Ngày đặt</p><p className="text-sm text-black/60">{viewingOrder.date}</p></div>
-                          <div><p className={labelCls}>Trạng thái</p><span className={statusBadge(viewingOrder.status)}>{viewingOrder.status}</span></div>
-                        </div>
-                      </div>
-                      <div className="p-6 border-t border-black/10 flex justify-end">
-                        <button onClick={() => setViewingOrder(null)} className="px-6 py-3 bg-black text-white text-xs tracking-[0.2em] uppercase hover:bg-black/90 transition-colors">Đóng</button>
+                {deletingOrder && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setDeletingOrder(null)}>
+                    <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+                      <h3 className="font-['Cormorant_Garamond'] text-xl mb-2 text-red-600">Xác nhận xóa đơn hàng</h3>
+                      <p className="text-sm text-black/50 mb-6">Bạn có chắc chắn muốn xóa đơn hàng <strong>{deletingOrder}</strong>? Dữ liệu này sẽ mất vĩnh viễn.</p>
+                      <div className="flex gap-3 justify-end">
+                        <button onClick={() => setDeletingOrder(null)} className="px-5 py-2.5 border border-black/20 text-xs tracking-[0.2em] uppercase hover:border-black transition-colors">Hủy</button>
+                        <button onClick={executeDeleteOrder} className="px-5 py-2.5 bg-red-600 text-white text-xs tracking-[0.2em] uppercase hover:bg-red-700 transition-colors">Xóa vĩnh viễn</button>
                       </div>
                     </motion.div>
                   </motion.div>
@@ -797,8 +790,11 @@ export default function AdminPage() {
                         <td className="px-6 py-4 text-black/40">{u.joined}</td>
                         <td className="px-6 py-4"><span className={`text-[9px] tracking-[0.15em] uppercase px-2.5 py-1 ${blockedUsers.includes(u.id) ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{blockedUsers.includes(u.id) ? 'Đã chặn' : 'Hoạt động'}</span></td>
                         <td className="px-6 py-4"><div className="flex gap-2">
-                          <button onClick={() => setViewingUser(u)} className="text-[9px] tracking-wider border border-black/20 px-2.5 py-1 hover:border-black transition-colors">Xem</button>
-                          <button onClick={() => toggleBlockUser(u.id)} className={`text-[9px] tracking-wider border px-2.5 py-1 transition-colors ${blockedUsers.includes(u.id) ? 'border-green-300 text-green-600 hover:bg-green-50' : 'border-red-200 text-red-500 hover:bg-red-50'}`}>{blockedUsers.includes(u.id) ? 'Mở chặn' : 'Chặn'}</button>
+                          <button onClick={() => setViewingUser(u)} className="w-8 h-8 flex items-center justify-center border border-black/15 hover:border-black transition-colors" title="Xem người dùng"><Eye size={12} /></button>
+                          <button onClick={() => toggleBlockUser(u.id)} className={`w-8 h-8 flex items-center justify-center border transition-colors ${blockedUsers.includes(u.id) ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-amber-200 text-amber-600 hover:bg-amber-50'}`} title={blockedUsers.includes(u.id) ? 'Mở chặn' : 'Chặn người dùng'}>
+                            <Shield size={12} />
+                          </button>
+                          <button onClick={() => setDeletingUser(u.id)} className="w-8 h-8 flex items-center justify-center border border-red-200 text-red-500 hover:bg-red-50 transition-colors" title="Xóa người dùng"><Trash2 size={12} /></button>
                         </div></td>
                       </tr>
                     ))}</tbody>

@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getSession } from "./authActions";
 
 export async function getAllUsers() {
   try {
@@ -81,6 +82,9 @@ export async function toggleUserBlock(id: string, isBlocked: boolean) {
 
 export async function deleteUser(id: string) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "admin") return { success: false, error: "Permission denied" };
+
     await prisma.user.delete({ where: { id } });
     return { success: true };
   } catch (error: any) {

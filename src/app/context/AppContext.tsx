@@ -3,11 +3,11 @@ import { Product, products as defaultProducts } from '../data/products';
 import { AboutContent, defaultAboutContent } from '../data/aboutDefaults';
 import { blogPosts as defaultBlogPosts } from '../data/blog';
 import { login as loginAction, registerUser as registerAction, getSession as getSessionAction, logout as logoutAction } from '@/actions/authActions';
-import { createOrder as createOrderAction, getUserOrders as getUserOrdersAction, getAllOrders as getAllOrdersAction } from '@/actions/orderActions';
+import { createOrder as createOrderAction, getUserOrders as getUserOrdersAction, getAllOrders as getAllOrdersAction, deleteOrder as deleteOrderAction } from '@/actions/orderActions';
 import { getProducts as getProductsAction } from '@/actions/productActions';
 import { getSetting as getSettingAction, saveSetting as saveSettingAction } from '@/actions/settingActions';
 import { getBlogPosts as getBlogPostsAction } from '@/actions/blogActions';
-import { updateUserPoints, updateUserCart, updateUserWishlist } from '@/actions/userActions';
+import { updateUserPoints, updateUserCart, updateUserWishlist, deleteUser as deleteUserAction } from '@/actions/userActions';
 
 export interface CartItem {
   product: Product;
@@ -128,6 +128,8 @@ interface AppContextType {
   updateFlashCampaign: (id: string, campaign: Partial<FlashSaleCampaign>) => void;
   deleteFlashCampaign: (id: string) => void;
   getSalePrice: (product: Product) => { isSale: boolean; price: number };
+  deleteAdminOrder: (id: string) => Promise<boolean>;
+  deleteAdminUser: (id: string) => Promise<boolean>;
 }
 
 const STORAGE_KEYS = {
@@ -661,6 +663,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBlogPosts(newPosts);
   }, []);
 
+  const deleteAdminOrder = useCallback(async (id: string) => {
+    try {
+      const res = await deleteOrderAction(id);
+      if (res.success) {
+        setOrders(prev => prev.filter(o => o.id !== id));
+        showNotification('Đã xóa đơn hàng thành công', 'success');
+        return true;
+      } else {
+        showNotification(res.error || 'Lỗi khi xóa đơn hàng', 'error');
+        return false;
+      }
+    } catch (error) {
+      showNotification('Lỗi khi xóa đơn hàng', 'error');
+      return false;
+    }
+  }, [showNotification]);
+
+  const deleteAdminUser = useCallback(async (id: string) => {
+    try {
+      const res = await deleteUserAction(id);
+      if (res.success) {
+        showNotification('Đã xóa người dùng thành công', 'success');
+        return true;
+      } else {
+        showNotification(res.error || 'Lỗi khi xóa người dùng', 'error');
+        return false;
+      }
+    } catch (error) {
+      showNotification('Lỗi khi xóa người dùng', 'error');
+      return false;
+    }
+  }, [showNotification]);
+
   return (
     <AppContext.Provider value={{
       cart,
@@ -707,6 +742,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateFlashCampaign,
       deleteFlashCampaign,
       getSalePrice,
+      deleteAdminOrder,
+      deleteAdminUser,
     }}>
       {children}
     </AppContext.Provider>

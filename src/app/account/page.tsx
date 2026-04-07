@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Package, Heart, Award, Settings, LogOut, ArrowRight, Star, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useApp } from '../context/AppContext';
+import { useApp, Order } from '../context/AppContext';
 import { formatPrice } from '../data/products';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { OrderDetailsModal } from '../components/order/OrderDetailsModal';
 
 type Tab = 'profile' | 'orders' | 'wishlist' | 'rewards';
 
@@ -28,6 +29,7 @@ const statusStyles: Record<string, string> = {
 export default function AccountPage() {
   const { user, orders, wishlist, toggleWishlist, logout, isLoggedIn, products } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const navigate = useRouter();
   const wishlistProducts = products.filter(p => wishlist.includes(p.id));
 
@@ -178,14 +180,17 @@ export default function AccountPage() {
                           <span className="font-['Cormorant_Garamond'] text-xl">{formatPrice(order.total)}</span>
                         </div>
                       </div>
-                      {order.tracking && (
-                        <div className="mt-4 pt-4 border-t border-black/10 flex items-center justify-between">
+                      <div className="mt-4 pt-4 border-t border-black/10 flex items-center justify-between">
+                        <button 
+                          onClick={() => setViewingOrder(order)}
+                          className="flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase border border-black/15 px-4 py-2 hover:border-black transition-colors"
+                        >
+                          Chi tiết đơn hàng <ArrowRight size={12} />
+                        </button>
+                        {order.tracking && (
                           <p className="text-xs text-black/40 tracking-wide">Mã vận đơn: <span className="text-black">{order.tracking}</span></p>
-                          <button className="flex items-center gap-1 text-xs tracking-[0.2em] uppercase hover:opacity-60 transition-opacity">
-                            Theo dõi <ArrowRight size={12} />
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -257,6 +262,12 @@ export default function AccountPage() {
 
           </AnimatePresence>
         </div>
+
+        <OrderDetailsModal 
+          order={viewingOrder} 
+          isOpen={!!viewingOrder} 
+          onClose={() => setViewingOrder(null)} 
+        />
       </div>
     </div>
   );

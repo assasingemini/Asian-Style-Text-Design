@@ -97,6 +97,9 @@ export async function updateOrderStatus(id: string, status: string) {
 
 export async function deleteOrder(id: string) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "admin") return { success: false, error: "Permission denied" };
+
     await prisma.order.delete({ where: { id } });
     return { success: true };
   } catch (error: any) {
