@@ -77,7 +77,7 @@ export default function AccountPage() {
               <p className="text-white/40 text-[9px] tracking-[0.25em] uppercase">Đơn hàng</p>
             </div>
             <div className="text-center">
-              <p className="font-['Cormorant_Garamond'] text-3xl text-white">{wishlist.length}</p>
+              <Heart size={20} className="mx-auto mb-1 text-white" strokeWidth={1.5} />
               <p className="text-white/40 text-[9px] tracking-[0.25em] uppercase">Đã lưu</p>
             </div>
           </div>
