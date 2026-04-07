@@ -24,6 +24,33 @@ import { OrderDetailsModal } from '../components/order/OrderDetailsModal';
 import { Order } from '../context/AppContext';
 import { getDashboardStats } from '@/actions/dashboardActions';
 
+interface RevenueChartData {
+  month: string;
+  revenue: number;
+  orders: number;
+}
+
+interface CategoryChartData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface DashboardData {
+  success: boolean;
+  stats?: {
+    totalRevenue: number;
+    ordersThisMonth: number;
+    ordersGrowth: number;
+    newUsers: number;
+    usersGrowth: number;
+    activeProducts: number;
+  };
+  revenueChart?: RevenueChartData[];
+  categoryChart?: CategoryChartData[];
+  error?: string;
+}
+
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about' | 'payments';
 
 const navItems: { key: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
@@ -134,7 +161,7 @@ export default function AdminPage() {
   });
 
   // Dashboard stats state
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
@@ -222,15 +249,15 @@ export default function AdminPage() {
     { 
       label: 'Đơn hàng tháng này', 
       value: (dashboardData?.stats?.ordersThisMonth || 0).toString(), 
-      change: `${dashboardData?.stats?.ordersGrowth >= 0 ? '+' : ''}${dashboardData?.stats?.ordersGrowth}%`, 
-      positive: dashboardData?.stats?.ordersGrowth >= 0, 
+      change: `${(dashboardData?.stats?.ordersGrowth || 0) >= 0 ? '+' : ''}${dashboardData?.stats?.ordersGrowth || 0}%`, 
+      positive: (dashboardData?.stats?.ordersGrowth || 0) >= 0, 
       icon: ShoppingCart 
     },
     { 
       label: 'Khách hàng mới', 
       value: (dashboardData?.stats?.newUsers || 0).toString(), 
-      change: `${dashboardData?.stats?.usersGrowth >= 0 ? '+' : ''}${dashboardData?.stats?.usersGrowth}%`, 
-      positive: dashboardData?.stats?.usersGrowth >= 0, 
+      change: `${(dashboardData?.stats?.usersGrowth || 0) >= 0 ? '+' : ''}${dashboardData?.stats?.usersGrowth || 0}%`, 
+      positive: (dashboardData?.stats?.usersGrowth || 0) >= 0, 
       icon: Users 
     },
     { 
@@ -618,11 +645,11 @@ export default function AdminPage() {
                   <h3 className="font-['Cormorant_Garamond'] text-xl mb-6">Theo danh mục</h3>
                   <ResponsiveContainer width="100%" height={140}>
                     <PieChart><Pie data={categoryData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} dataKey="value" strokeWidth={0}>
-                      {categoryData.map((entry) => <Cell key={`cell-${entry.name}`} fill={entry.color} />)}
+                      {categoryData.map((entry: CategoryChartData) => <Cell key={`cell-${entry.name}`} fill={entry.color} />)}
                     </Pie><Tooltip contentStyle={{ fontSize: 11, border: '1px solid #e0e0e0', borderRadius: 0 }} /></PieChart>
                   </ResponsiveContainer>
                   <div className="space-y-2 mt-4">
-                    {categoryData.map(cat => (
+                    {categoryData.map((cat: CategoryChartData) => (
                       <div key={cat.name} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} /><span className="text-black/60">{cat.name}</span></div>
                         <span className="text-black">{cat.value}%</span>

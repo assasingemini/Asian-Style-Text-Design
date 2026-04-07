@@ -8,7 +8,7 @@ export async function getDashboardStats() {
   try {
     const session = await getSession();
     if (!session || session.role !== "admin") {
-      return { error: "Permission denied" };
+      return { success: false, error: "Permission denied" };
     }
 
     const now = new Date();
