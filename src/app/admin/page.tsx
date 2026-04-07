@@ -22,6 +22,7 @@ import { getAllUsers as getAllUsersAction, toggleUserBlock as toggleUserBlockAct
 import { getSetting as getSettingAction, saveSetting as saveSettingAction } from '@/actions/settingActions';
 import { OrderDetailsModal } from '../components/order/OrderDetailsModal';
 import { Order } from '../context/AppContext';
+import { getDashboardStats } from '@/actions/dashboardActions';
 
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about' | 'payments';
 
@@ -38,22 +39,7 @@ const navItems: { key: AdminTab; label: string; icon: typeof LayoutDashboard }[]
   { key: 'payments', label: 'Thanh toán', icon: CreditCard },
 ];
 
-const revenueData = [
-  { month: 'Th10', revenue: 48000000, orders: 142 },
-  { month: 'Th11', revenue: 62000000, orders: 178 },
-  { month: 'Th12', revenue: 95000000, orders: 256 },
-  { month: 'Th1', revenue: 71000000, orders: 198 },
-  { month: 'Th2', revenue: 83000000, orders: 221 },
-  { month: 'Th3', revenue: 112000000, orders: 289 },
-];
-
-const categoryData = [
-  { name: 'Áo khoác', value: 35, color: '#0a0a0a' },
-  { name: 'Áo', value: 28, color: '#3d3d3d' },
-  { name: 'Quần & Váy', value: 20, color: '#6b6b6b' },
-  { name: 'Phụ kiện', value: 10, color: '#9a9a9a' },
-  { name: 'Đầm', value: 7, color: '#c8c8c8' },
-];
+// Dummy data removed, now fetched from DB
 
 const mockOrders = [
   { id: 'ORD-2026-0412', customer: 'Linh Nguyễn', total: 578000, status: 'Đang giao', date: '2026-03-20', items: 3 },
@@ -147,6 +133,10 @@ export default function AdminPage() {
     products: []
   });
 
+  // Dashboard stats state
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
   useEffect(() => { setEditingPoints(pointsConfig); }, [pointsConfig]);
 
@@ -169,6 +159,15 @@ export default function AdminPage() {
       }));
       setLocalBlogPosts(mappedPosts);
       updateAdminBlogPosts(mappedPosts);
+    });
+
+    // Fetch Dashboard Stats
+    setLoadingStats(true);
+    getDashboardStats().then(res => {
+      if (res.success) {
+        setDashboardData(res);
+      }
+      setLoadingStats(false);
     });
   }, [initialized, updateAdminBlogPosts]);
 
@@ -213,11 +212,38 @@ export default function AdminPage() {
   );
 
   const stats = [
-    { label: 'Tổng doanh thu', value: '₫471,000,000', change: '+18.4%', positive: true, icon: DollarSign },
-    { label: 'Đơn hàng tháng này', value: orders.length.toString(), change: '+12.1%', positive: true, icon: ShoppingCart },
-    { label: 'Khách hàng mới', value: adminUsers.length.toString(), change: '+5.6%', positive: true, icon: Users },
-    { label: 'Sản phẩm đang bán', value: adminProducts.length.toString(), change: '+2', positive: true, icon: Package },
+    { 
+      label: 'Tổng doanh thu', 
+      value: formatPrice(dashboardData?.stats?.totalRevenue || 0), 
+      change: '+-', // We could calculate this if we had total from last month
+      positive: true, 
+      icon: DollarSign 
+    },
+    { 
+      label: 'Đơn hàng tháng này', 
+      value: (dashboardData?.stats?.ordersThisMonth || 0).toString(), 
+      change: `${dashboardData?.stats?.ordersGrowth >= 0 ? '+' : ''}${dashboardData?.stats?.ordersGrowth}%`, 
+      positive: dashboardData?.stats?.ordersGrowth >= 0, 
+      icon: ShoppingCart 
+    },
+    { 
+      label: 'Khách hàng mới', 
+      value: (dashboardData?.stats?.newUsers || 0).toString(), 
+      change: `${dashboardData?.stats?.usersGrowth >= 0 ? '+' : ''}${dashboardData?.stats?.usersGrowth}%`, 
+      positive: dashboardData?.stats?.usersGrowth >= 0, 
+      icon: Users 
+    },
+    { 
+      label: 'Sản phẩm đang bán', 
+      value: (dashboardData?.stats?.activeProducts || 0).toString(), 
+      change: '+-', 
+      positive: true, 
+      icon: Package 
+    },
   ];
+
+  const revenueData = dashboardData?.revenueChart || [];
+  const categoryData = dashboardData?.categoryChart || [];
 
   // Product CRUD
   const executeDeleteProduct = async () => {
