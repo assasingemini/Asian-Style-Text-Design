@@ -9,7 +9,7 @@ import { useApp } from '../context/AppContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 export default function BlogPage() {
-  const { blogPosts } = useApp();
+  const { blogPosts, initialized } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
   const filtered = selectedCategory === 'Tất cả'
     ? blogPosts
@@ -119,11 +119,15 @@ export default function BlogPage() {
           </>
         )}
 
-        {filtered.length === 0 && (
+        {!initialized ? (
+          <div className="py-24 text-center">
+             <div className="w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin inline-block" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="py-24 text-center">
             <p className="font-['Cormorant_Garamond'] text-3xl text-black/20">Không có bài viết nào trong danh mục này</p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

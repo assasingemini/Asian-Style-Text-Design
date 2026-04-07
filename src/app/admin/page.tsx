@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { products as dummyProducts, formatPrice, Product } from '../data/products';
 import { blogPosts } from '../data/blog';
-import { useApp, PointsRule, RewardItem, AboutContent } from '../context/AppContext';
+import { useApp, PointsRule, RewardItem, AboutContent, FlashSaleCampaign, FlashSaleProduct } from '../context/AppContext';
 import { createProduct as createProductAction, updateProduct as updateProductAction, deleteProduct as deleteProductAction } from '@/actions/productActions';
 import { createBlogPost as createBlogAction, updateBlogPost as updateBlogAction, deleteBlogPost as deleteBlogAction, getBlogPosts as getBlogPostsAction } from '@/actions/blogActions';
 import { updateOrderStatus as updateOrderStatusAction } from '@/actions/orderActions';
@@ -83,7 +83,14 @@ const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb
 
 export default function AdminPage() {
   const navigate = useRouter();
-  const { isLoggedIn, isAdmin, orders, products, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, updateAdminProducts, updateAdminBlogPosts, showNotification } = useApp();
+  const { 
+    isLoggedIn, isAdmin, orders, products, pointsConfig, rewardItems, 
+    updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, 
+    aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, 
+    updateAdminProducts, updateAdminBlogPosts, showNotification,
+    flashSaleCampaigns, addFlashCampaign, updateFlashCampaign, deleteFlashCampaign,
+    initialized 
+  } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -127,16 +134,15 @@ export default function AdminPage() {
   const [localBlogPosts, setLocalBlogPosts] = useState<any[]>([]);
   const [blogForm, setBlogForm] = useState({ title: '', category: '', author: '', content: '', image: '' });
 
-  // Flash sales state - persist to localStorage
-  const defaultFlash = [
-    { id: 'f1', name: 'Ưu đãi Nửa đêm', status: 'Hoạt động', products: 2, discount: 21, ends: '7g 23ph', revenue: '₫4.2M' },
-    { id: 'f2', name: 'Đặc biệt Cuối tuần', status: 'Đã lên lịch', products: 5, discount: 15, ends: '2n 5g', revenue: '—' },
-    { id: 'f3', name: 'Spring Clear', status: 'Đã kết thúc', products: 8, discount: 30, ends: 'Đã kết thúc', revenue: '₫18.7M' },
-  ];
+  // Flash sales state
   const [showFlashModal, setShowFlashModal] = useState(false);
   const [editingFlash, setEditingFlash] = useState<string | null>(null);
-  const [flashCampaigns, setFlashCampaigns] = useState<any[]>([]);
-  const [flashForm, setFlashForm] = useState({ name: '', products: 0, discount: 0 });
+  const [flashForm, setFlashForm] = useState<Omit<FlashSaleCampaign, 'id'>>({
+    name: '',
+    endDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16), // tomorrow
+    isActive: true,
+    products: []
+  });
 
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
   const localProducts = products;
@@ -151,7 +157,7 @@ export default function AdminPage() {
         setBlockedUsers(res.users.filter((u: any) => u.isBlocked).map((u: any) => u.id));
       }
     });
-    getBlogPostsAction().then(posts => {
+    getBlogPostsAction().then((posts: any[]) => {
       const mappedPosts = posts.map((p: any) => ({
         ...p,
         authorAvatar: (p as any).authorAvatar || '',
@@ -159,9 +165,6 @@ export default function AdminPage() {
       }));
       setLocalBlogPosts(mappedPosts);
       updateAdminBlogPosts(mappedPosts);
-    });
-    getSettingAction('flashCampaigns', []).then(campaigns => {
-      setFlashCampaigns(campaigns && campaigns.length > 0 ? campaigns : defaultFlash);
     });
   }, [updateAdminBlogPosts]);
 
@@ -186,6 +189,16 @@ export default function AdminPage() {
     updateAboutContent(editingAbout);
     setAboutChanged(false);
   };
+
+  // Loading state
+  if (!initialized) {
+    return (
+      <div className="min-h-screen pt-16 flex flex-col items-center justify-center bg-white">
+        <div className="w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin mb-4" />
+        <p className="text-[10px] tracking-[0.25em] uppercase text-black/40">Đang khởi tạo...</p>
+      </div>
+    );
+  }
 
   // Access control
   if (!isLoggedIn || !isAdmin) {
@@ -349,33 +362,74 @@ export default function AdminPage() {
 
   // Flash sales handlers
   const openAddFlash = () => {
-    setFlashForm({ name: '', products: 0, discount: 0 });
+    setFlashForm({
+      name: '',
+      endDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+      isActive: true,
+      products: []
+    });
     setEditingFlash(null);
     setShowFlashModal(true);
   };
-  const openEditFlash = (campaign: typeof flashCampaigns[0]) => {
-    setFlashForm({ name: campaign.name, products: campaign.products, discount: campaign.discount });
+
+  const openEditFlash = (campaign: FlashSaleCampaign) => {
+    setFlashForm({
+      name: campaign.name,
+      endDate: new Date(campaign.endDate).toISOString().slice(0, 16),
+      isActive: campaign.isActive,
+      products: [...campaign.products]
+    });
     setEditingFlash(campaign.id);
     setShowFlashModal(true);
   };
+
   const saveFlash = () => {
-    let updated;
-    if (editingFlash) {
-      updated = flashCampaigns.map(c => c.id === editingFlash ? { ...c, name: flashForm.name, products: flashForm.products, discount: flashForm.discount } : c);
-    } else {
-      updated = [...flashCampaigns, { id: Date.now().toString(36), name: flashForm.name, status: 'Đã lên lịch', products: flashForm.products, discount: flashForm.discount, ends: 'Sắp tới', revenue: '—' }];
+    if (!flashForm.name) {
+      showNotification('Vui lòng nhập tên chiến dịch', 'error');
+      return;
     }
-    setFlashCampaigns(updated);
-    saveSettingAction('flashCampaigns', updated);
+    if (flashForm.products.length === 0) {
+      showNotification('Vui lòng thêm ít nhất một sản phẩm', 'error');
+      return;
+    }
+
+    if (editingFlash) {
+      updateFlashCampaign(editingFlash, flashForm);
+    } else {
+      addFlashCampaign(flashForm);
+    }
     setShowFlashModal(false);
     setEditingFlash(null);
-    showNotification('Đã lưu chiến dịch giảm giá', 'success');
   };
-  const endFlashCampaign = (id: string) => {
-    const updated = flashCampaigns.map(c => c.id === id ? { ...c, status: 'Đã kết thúc', ends: 'Đã kết thúc' } : c);
-    setFlashCampaigns(updated);
-    saveSettingAction('flashCampaigns', updated);
-    showNotification('Đã kết thúc chiến dịch', 'info');
+
+  const isProductInOtherActiveCampaign = (productId: string) => {
+    const now = new Date();
+    return flashSaleCampaigns.some((c: FlashSaleCampaign) => 
+      c.id !== editingFlash && 
+      c.isActive && 
+      new Date(c.endDate) > now && 
+      c.products.some((p: FlashSaleProduct) => p.productId === productId)
+    );
+  };
+
+  const toggleProductInCampaign = (product: Product) => {
+    setFlashForm(prev => {
+      const exists = prev.products.some((p: FlashSaleProduct) => p.productId === product.id);
+      if (exists) {
+        return { ...prev, products: prev.products.filter((p: FlashSaleProduct) => p.productId !== product.id) };
+      }
+      return { 
+        ...prev, 
+        products: [...prev.products, { productId: product.id, salePrice: Math.floor(product.price * 0.8) }] 
+      };
+    });
+  };
+
+  const updateFlashProductPrice = (productId: string, price: number) => {
+    setFlashForm(prev => ({
+      ...prev,
+      products: prev.products.map((p: FlashSaleProduct) => p.productId === productId ? { ...p, salePrice: price } : p)
+    }));
   };
 
   // Points handlers
@@ -843,45 +897,128 @@ export default function AdminPage() {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-['Cormorant_Garamond'] text-2xl">Chiến dịch Giảm giá Sốc</h2>
-                <button onClick={openAddFlash} className="flex items-center gap-2 bg-black text-white text-xs tracking-[0.2em] uppercase px-5 py-3"><Plus size={14} /> Chiến dịch mới</button>
+                <button onClick={openAddFlash} className="flex items-center gap-2 bg-black text-white text-xs tracking-[0.2em] uppercase px-5 py-3 hover:bg-black/90 transition-colors">
+                  <Plus size={14} /> Chiến dịch mới
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {flashCampaigns.map(campaign=>(
-                  <motion.div key={campaign.id} layout className="bg-white border border-black/10 p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div><h3 className="font-['Cormorant_Garamond'] text-xl">{campaign.name}</h3><p className="text-xs text-black/40 mt-1">{campaign.products} sản phẩm · giảm {campaign.discount}%</p></div>
-                      <span className={`text-[9px] tracking-[0.2em] uppercase px-2.5 py-1 ${campaign.status==='Hoạt động'?'bg-green-100 text-green-800':campaign.status==='Đã lên lịch'?'bg-yellow-100 text-yellow-800':'bg-gray-100 text-gray-600'}`}>{campaign.status}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><p className="text-[9px] tracking-wider text-black/40 uppercase mb-1">Còn lại</p><p className="text-sm font-medium">{campaign.ends}</p></div>
-                      <div><p className="text-[9px] tracking-wider text-black/40 uppercase mb-1">Doanh thu</p><p className="text-sm font-['Cormorant_Garamond'] text-base">{campaign.revenue}</p></div>
-                    </div>
-                    <div className="flex gap-2 mt-5">
-                      <button onClick={() => openEditFlash(campaign)} className="text-[9px] tracking-wider border border-black/20 px-3 py-1.5 hover:border-black transition-colors">Sửa</button>
-                      {campaign.status === 'Hoạt động' && <button onClick={() => endFlashCampaign(campaign.id)} className="text-[9px] tracking-wider border border-red-200 text-red-500 px-3 py-1.5 hover:bg-red-50 transition-colors">Kết thúc</button>}
-                    </div>
-                  </motion.div>
-                ))}
+                {flashSaleCampaigns.length === 0 ? (
+                  <div className="col-span-2 bg-white border border-black/10 p-12 text-center">
+                    <Zap size={32} className="mx-auto mb-4 text-black/10" />
+                    <p className="text-black/40 text-sm tracking-wide">Chưa có chiến dịch nào được tạo.</p>
+                  </div>
+                ) : (
+                  flashSaleCampaigns.map(campaign => {
+                    const isEnded = new Date(campaign.endDate) < new Date();
+                    const status = isEnded ? 'Đã kết thúc' : (campaign.isActive ? 'Hoạt động' : 'Tạm dừng');
+                    return (
+                      <motion.div key={campaign.id} layout className="bg-white border border-black/10 p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-['Cormorant_Garamond'] text-xl">{campaign.name}</h3>
+                            <p className="text-xs text-black/40 mt-1">{campaign.products.length} sản phẩm</p>
+                          </div>
+                          <span className={`text-[9px] tracking-[0.2em] uppercase px-2.5 py-1 ${
+                            status === 'Hoạt động' ? 'bg-green-100 text-green-800' : 
+                            status === 'Tạm dừng' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-gray-100 text-gray-600'
+                          }`}>{status}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[9px] tracking-wider text-black/40 uppercase mb-1">Kết thúc vào</p>
+                            <p className="text-sm font-medium">{new Date(campaign.endDate).toLocaleString('vi-VN')}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] tracking-wider text-black/40 uppercase mb-1">Trạng thái</p>
+                            <p className="text-sm font-medium">{campaign.isActive ? 'Đã bật' : 'Đã tắt'}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-5">
+                          <button onClick={() => openEditFlash(campaign)} className="text-[9px] tracking-wider border border-black/20 px-3 py-1.5 hover:border-black transition-colors">Sửa</button>
+                          <button onClick={() => deleteFlashCampaign(campaign.id)} className="text-[9px] tracking-wider border border-red-200 text-red-500 px-3 py-1.5 hover:bg-red-50 transition-colors">Xóa</button>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
               </div>
+
               {/* Flash Sale Modal */}
               <AnimatePresence>
                 {showFlashModal && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setShowFlashModal(false)}>
-                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }} className="bg-white w-full max-w-lg" onClick={e => e.stopPropagation()}>
-                      <div className="p-6 border-b border-black/10 flex items-center justify-between">
+                    <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }} className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                      <div className="p-6 border-b border-black/10 flex items-center justify-between shrink-0">
                         <h2 className="font-['Cormorant_Garamond'] text-2xl">{editingFlash ? 'Chỉnh sửa chiến dịch' : 'Tạo chiến dịch mới'}</h2>
                         <button onClick={() => setShowFlashModal(false)}><X size={18} /></button>
                       </div>
-                      <div className="p-6 space-y-5">
-                        <div><label className={labelCls}>Tên chiến dịch</label><input type="text" value={flashForm.name} onChange={e => setFlashForm(f => ({...f, name: e.target.value}))} className={inputCls} placeholder="Ưu đãi mùa hè..." /></div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div><label className={labelCls}>Số sản phẩm</label><input type="number" value={flashForm.products} onChange={e => setFlashForm(f => ({...f, products: Number(e.target.value)}))} className={inputCls} /></div>
-                          <div><label className={labelCls}>Giảm giá (%)</label><input type="number" value={flashForm.discount} onChange={e => setFlashForm(f => ({...f, discount: Number(e.target.value)}))} className={inputCls} /></div>
+                      
+                      <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                        <div className="grid grid-cols-2 gap-5">
+                          <div className="col-span-2">
+                            <label className={labelCls}>Tên chiến dịch</label>
+                            <input type="text" value={flashForm.name} onChange={e => setFlashForm(f => ({...f, name: e.target.value}))} className={inputCls} placeholder="Ưu đãi mùa hè..." />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Thời gian kết thúc</label>
+                            <input type="datetime-local" value={flashForm.endDate} onChange={e => setFlashForm(f => ({...f, endDate: e.target.value}))} className={inputCls} />
+                          </div>
+                          <div className="flex items-end pb-1">
+                            <button 
+                              onClick={() => setFlashForm(f => ({...f, isActive: !f.isActive}))}
+                              className="flex items-center gap-2 text-xs tracking-wider"
+                            >
+                              {flashForm.isActive ? <ToggleRight className="text-green-600" size={24} /> : <ToggleLeft className="text-black/20" size={24} />}
+                              Kích hoạt chiến dịch
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className={labelCls}>Chọn sản phẩm ({flashForm.products.length})</label>
+                          <div className="border border-black/10 max-h-60 overflow-y-auto mt-2">
+                            {localProducts.map(product => {
+                              const inCampaign = flashForm.products.find(p => p.productId === product.id);
+                              const takenByOther = isProductInOtherActiveCampaign(product.id);
+                              
+                              return (
+                                <div key={product.id} className={`flex items-center gap-4 p-3 border-b border-black/5 last:border-0 ${takenByOther ? 'opacity-40 cursor-not-allowed' : 'hover:bg-black/2'}`}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={!!inCampaign} 
+                                    disabled={takenByOther}
+                                    onChange={() => toggleProductInCampaign(product)}
+                                    className="accent-black"
+                                  />
+                                  <div className="w-8 h-10 bg-gray-50 flex-shrink-0">
+                                    <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium truncate">{product.name}</p>
+                                    <p className="text-[10px] text-black/40">{formatPrice(product.price)} {takenByOther && '(Đã có trong chiến dịch khác)'}</p>
+                                  </div>
+                                  {inCampaign && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] text-black/40 tracking-wider">GIÁ SALE:</span>
+                                      <input 
+                                        type="number" 
+                                        value={inCampaign.salePrice} 
+                                        onChange={(e) => updateFlashProductPrice(product.id, Number(e.target.value))}
+                                        className="w-24 border border-black/15 px-2 py-1 text-[11px] outline-none focus:border-black"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-                      <div className="p-6 border-t border-black/10 flex gap-3 justify-end">
+
+                      <div className="p-6 border-t border-black/10 flex gap-3 justify-end shrink-0">
                         <button onClick={() => setShowFlashModal(false)} className="px-6 py-3 border border-black/20 text-xs tracking-[0.2em] uppercase hover:border-black transition-colors">Hủy</button>
-                        <button onClick={saveFlash} className="px-6 py-3 bg-black text-white text-xs tracking-[0.2em] uppercase hover:bg-black/90 transition-colors">{editingFlash ? 'Lưu' : 'Tạo'}</button>
+                        <button onClick={saveFlash} className="px-6 py-3 bg-black text-white text-xs tracking-[0.2em] uppercase hover:bg-black/90 transition-colors">{editingFlash ? 'Lưu thay đổi' : 'Tạo chiến dịch'}</button>
                       </div>
                     </motion.div>
                   </motion.div>

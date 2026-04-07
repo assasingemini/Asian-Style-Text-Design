@@ -12,13 +12,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
-  const { wishlist, toggleWishlist, addToCart } = useApp();
+  const { wishlist, toggleWishlist, addToCart, getSalePrice } = useApp();
   const [hovered, setHovered] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
   const isWishlisted = wishlist.includes(product.id);
-  const displayPrice = product.isFlashSale && product.flashSalePrice
-    ? product.flashSalePrice
-    : product.price;
+  
+  const { isSale, price: displayPrice } = getSalePrice(product);
 
   const handleAddToCart = (size: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -61,7 +60,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             {product.isBestseller && (
               <span className="bg-white text-black text-[9px] tracking-[0.2em] px-2 py-1 uppercase border border-black/10">Bán chạy</span>
             )}
-            {product.isFlashSale && (
+            {isSale && (
               <span className="bg-red-600 text-white text-[9px] tracking-[0.2em] px-2 py-1 uppercase flex items-center gap-1">
                 <Zap size={8} className="fill-white" /> Sale
               </span>
@@ -117,9 +116,9 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               <h3 className="font-['Cormorant_Garamond'] text-lg tracking-wide text-black leading-tight">{product.name}</h3>
             </div>
             <div className="text-right shrink-0">
-              {product.isFlashSale && product.flashSalePrice ? (
+              {isSale ? (
                 <>
-                  <p className="text-red-600 text-sm tracking-wide">{formatPrice(product.flashSalePrice)}</p>
+                  <p className="text-red-600 text-sm tracking-wide">{formatPrice(displayPrice)}</p>
                   <p className="text-black/30 text-xs line-through">{formatPrice(product.price)}</p>
                 </>
               ) : product.originalPrice ? (

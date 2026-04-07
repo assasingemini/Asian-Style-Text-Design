@@ -48,29 +48,34 @@ function TimeBlock({ value, label }: { value: number; label: string }) {
 }
 
 export default function FlashSalePage() {
-  const { addToCart, products } = useApp();
+  const { addToCart, products, initialized, flashSaleCampaigns } = useApp();
 
-  // Memoize flash sales to prevent re-creation of Date objects
-  const flashSales = useMemo(() => [
-    {
-      id: 'fs1',
-      name: 'Ưu đãi Nửa đêm',
-      endDate: new Date(Date.now() + 7 * 3600000 + 23 * 60000),
-      badge: 'Sắp kết thúc',
-      products: products.filter(p => p.isFlashSale),
-    },
-    {
-      id: 'fs2',
-      name: 'Đặc biệt Cuối tuần',
-      endDate: new Date(Date.now() + 2 * 86400000 + 5 * 3600000),
-      badge: 'Đang diễn ra',
-      products: products.filter((_, i) => i % 3 === 0),
-    },
-  ], [products]);
+  const activeCampaigns = useMemo(() => {
+    const now = new Date();
+    return flashSaleCampaigns.filter(c => c.isActive && new Date(c.endDate) > now);
+  }, [flashSaleCampaigns]);
 
-  const [activeSaleId, setActiveSaleId] = useState('fs1');
-  const activeSale = flashSales.find(s => s.id === activeSaleId) || flashSales[0];
-  const countdown = useCountdown(activeSale.endDate);
+  const [activeSaleId, setActiveSaleId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (activeCampaigns.length > 0 && !activeSaleId) {
+      setActiveSaleId(activeCampaigns[0].id);
+    }
+  }, [activeCampaigns, activeSaleId]);
+
+  const activeSale = activeCampaigns.find(s => s.id === activeSaleId) || activeCampaigns[0];
+  const countdown = useCountdown(activeSale ? new Date(activeSale.endDate) : new Date());
+
+  if (initialized && activeCampaigns.length === 0) {
+    return (
+      <div className="min-h-screen bg-white pt-32 text-center px-6">
+        <Zap size={48} className="mx-auto mb-6 text-black/10" />
+        <h1 className="font-['Cormorant_Garamond'] text-4xl mb-4">Hiện không có Flash Sale</h1>
+        <p className="text-black/50 text-sm tracking-wide mb-10">Vui lòng quay lại sau để săn những ưu đãi hấp dẫn nhất từ KUMO.</p>
+        <Link href="/shop" className="inline-block bg-black text-white text-xs tracking-[0.25em] uppercase py-4 px-10 hover:bg-black/90">Tiếp tục mua sắm</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white pt-16">
@@ -112,21 +117,16 @@ export default function FlashSalePage() {
       {/* Sale Tabs */}
       <div className="border-b border-black/10">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex gap-0 overflow-x-auto">
-          {flashSales.map(sale => (
+          {activeCampaigns.map(sale => (
             <button
               key={sale.id}
               onClick={() => setActiveSaleId(sale.id)}
               className={`flex items-center gap-3 px-8 py-5 text-xs tracking-[0.2em] uppercase border-b-2 whitespace-nowrap transition-all ${
-                activeSale.id === sale.id ? 'border-black text-black' : 'border-transparent text-black/40 hover:text-black'
+                activeSale?.id === sale.id ? 'border-black text-black' : 'border-transparent text-black/40 hover:text-black'
               }`}
             >
-              <Zap size={10} className={activeSale.id === sale.id ? 'fill-black stroke-black' : 'fill-black/30 stroke-black/30'} />
+              <Zap size={10} className={activeSale?.id === sale.id ? 'fill-black stroke-black' : 'fill-black/30 stroke-black/30'} />
               {sale.name}
-              <span className={`text-[9px] px-2 py-0.5 ${
-                sale.badge === 'Sắp kết thúc' ? 'bg-red-600 text-white' : 'bg-black text-white'
-              }`}>
-                {sale.badge}
-              </span>
             </button>
           ))}
         </div>
@@ -134,72 +134,81 @@ export default function FlashSalePage() {
 
       {/* Products */}
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {activeSale.products.map((product, i) => {
-            const salePrice = product.flashSalePrice || Math.round(product.price * 0.8);
-            const discount = Math.round((1 - salePrice / product.price) * 100);
-            const stockLeft = Math.floor(Math.random() * 8) + 1;
+        {!initialized ? (
+          <div className="py-20 text-center">
+            <div className="w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin inline-block" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {activeSale?.products.map((flashProd, i) => {
+              const product = products.find(p => p.id === flashProd.productId);
+              if (!product) return null;
+              
+              const salePrice = flashProd.salePrice;
+              const discount = Math.round((1 - salePrice / product.price) * 100);
+              const stockLeft = product.stock > 10 ? Math.floor(Math.random() * 5) + 2 : product.stock;
 
-            return (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className="group border border-black/10 hover:border-black/20 transition-all"
-              >
-                <Link href={`/shop/${product.id}`} className="block relative overflow-hidden aspect-[4/3]">
-                  <ImageWithFallback
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-red-600 text-white text-[10px] tracking-[0.2em] px-3 py-1.5 uppercase flex items-center gap-1">
-                      <Zap size={9} className="fill-white" /> -{discount}%
-                    </span>
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="group border border-black/10 hover:border-black/20 transition-all"
+                >
+                  <Link href={`/shop/${product.id}`} className="block relative overflow-hidden aspect-[4/3]">
+                    <ImageWithFallback
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="bg-red-600 text-white text-[10px] tracking-[0.2em] px-3 py-1.5 uppercase flex items-center gap-1">
+                        <Zap size={9} className="fill-white" /> -{discount}%
+                      </span>
+                    </div>
+                  </Link>
+
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="text-[9px] tracking-[0.2em] uppercase text-black/40 mb-1">{product.category}</p>
+                        <Link href={`/shop/${product.id}`}>
+                          <h3 className="font-['Cormorant_Garamond'] text-xl hover:opacity-60 transition-opacity">{product.name}</h3>
+                        </Link>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-red-600 text-sm tracking-wide">{formatPrice(salePrice)}</p>
+                        <p className="text-black/30 text-xs line-through">{formatPrice(product.price)}</p>
+                      </div>
+                    </div>
+
+                    {/* Stock urgency */}
+                    <div className="mb-4">
+                      <div className="flex justify-between mb-1">
+                        <p className="text-[9px] tracking-wider text-black/40">Số lượng còn lại</p>
+                        <p className="text-[9px] tracking-wider text-red-500">còn {stockLeft}</p>
+                      </div>
+                      <div className="h-1 bg-black/10">
+                        <div
+                          className="h-full bg-red-500 transition-all"
+                          style={{ width: `${(stockLeft / 20) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => addToCart(product, product.sizes[2] || product.sizes[0], product.colors[0])}
+                      className="w-full bg-black text-white text-xs tracking-[0.2em] uppercase py-3 hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Zap size={12} className="fill-white" /> Thêm vào giỏ hàng
+                    </button>
                   </div>
-                </Link>
-
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="text-[9px] tracking-[0.2em] uppercase text-black/40 mb-1">{product.category}</p>
-                      <Link href={`/shop/${product.id}`}>
-                        <h3 className="font-['Cormorant_Garamond'] text-xl hover:opacity-60 transition-opacity">{product.name}</h3>
-                      </Link>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-red-600 text-sm tracking-wide">{formatPrice(salePrice)}</p>
-                      <p className="text-black/30 text-xs line-through">{formatPrice(product.price)}</p>
-                    </div>
-                  </div>
-
-                  {/* Stock urgency */}
-                  <div className="mb-4">
-                    <div className="flex justify-between mb-1">
-                      <p className="text-[9px] tracking-wider text-black/40">Số lượng còn lại</p>
-                      <p className="text-[9px] tracking-wider text-red-500">còn {stockLeft}</p>
-                    </div>
-                    <div className="h-1 bg-black/10">
-                      <div
-                        className="h-full bg-red-500 transition-all"
-                        style={{ width: `${(stockLeft / 20) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => addToCart(product, product.sizes[2] || product.sizes[0], product.colors[0])}
-                    className="w-full bg-black text-white text-xs tracking-[0.2em] uppercase py-3 hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Zap size={12} className="fill-white" /> Thêm vào giỏ hàng
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Info Banner */}

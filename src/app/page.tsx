@@ -65,12 +65,23 @@ function RevealSection({ children, className = '' }: { children: React.ReactNode
 }
 
 export default function HomePage() {
-  const saleEnd = useMemo(() => new Date(Date.now() + 7 * 3600000 + 23 * 60000 + 47000), []);
-  const countdown = useCountdown(saleEnd);
-  const { products, blogPosts } = useApp();
+  const { products, blogPosts, initialized, flashSaleCampaigns } = useApp();
   const featuredProducts = products.slice(0, 4);
-  const flashSaleProducts = products.filter(p => p.isFlashSale);
   const recentPosts = blogPosts.slice(0, 3);
+
+  const activeCampaign = useMemo(() => {
+    if (!flashSaleCampaigns) return null;
+    const now = new Date();
+    return flashSaleCampaigns.find(c => c.isActive && new Date(c.endDate) > now);
+  }, [flashSaleCampaigns]);
+
+  const saleEnd = useMemo(() => activeCampaign ? new Date(activeCampaign.endDate) : new Date(), [activeCampaign]);
+  const countdown = useCountdown(saleEnd);
+  
+  const flashSaleProducts = useMemo(() => {
+    if (!activeCampaign) return [];
+    return activeCampaign.products.map(fp => products.find(p => p.id === fp.productId)).filter(Boolean).slice(0, 2);
+  }, [activeCampaign, products]);
 
   return (
     <div className="bg-white">
@@ -147,11 +158,17 @@ export default function HomePage() {
           </div>
         </RevealSection>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-          {featuredProducts.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} />
-          ))}
-        </div>
+        {!initialized ? (
+          <div className="flex justify-center py-20">
+             <div className="w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+            {featuredProducts.map((product, i) => (
+              <ProductCard key={product.id} product={product} index={i} />
+            ))}
+          </div>
+        )}
 
         <div className="text-center mt-12 md:hidden">
           <Link href="/shop" className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all duration-300">
@@ -191,75 +208,82 @@ export default function HomePage() {
       </section>
 
       {/* FLASH SALE */}
-      <section className="bg-black py-20 md:py-28 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-white blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-white blur-3xl" />
-        </div>
+      {activeCampaign && flashSaleProducts.length > 0 && (
+        <section className="bg-black py-20 md:py-28 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-white blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-white blur-3xl" />
+          </div>
 
-        <div className="relative max-w-[1440px] mx-auto px-6 md:px-12">
-          <RevealSection>
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap size={14} className="fill-red-500 stroke-red-500" />
-                  <p className="text-red-500 text-[10px] tracking-[0.35em] uppercase">Giảm giá Sốc</p>
-                </div>
-                <h2 className="font-['Cormorant_Garamond'] text-white text-4xl md:text-5xl">Kết thúc sau</h2>
-              </div>
-              <div className="flex items-center gap-4 md:gap-8">
-                <CountBox value={countdown.h} label="Giờ" />
-                <span className="font-['Cormorant_Garamond'] text-white/30 text-5xl -mt-4">:</span>
-                <CountBox value={countdown.m} label="Phút" />
-                <span className="font-['Cormorant_Garamond'] text-white/30 text-5xl -mt-4">:</span>
-                <CountBox value={countdown.s} label="Giây" />
-              </div>
-            </div>
-          </RevealSection>
-
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-8">
-            {flashSaleProducts.map((product, i) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-              >
-                <Link href={`/shop/${product.id}`} className="group block">
-                  <div className="relative overflow-hidden aspect-[3/4] bg-zinc-900">
-                    <ImageWithFallback
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-5">
-                      <p className="text-white/60 text-[9px] tracking-[0.2em] uppercase mb-1">{product.category}</p>
-                      <h3 className="font-['Cormorant_Garamond'] text-white text-xl mb-2">{product.name}</h3>
-                      <div className="flex items-center gap-3">
-                        <span className="text-red-400 text-sm">{formatPrice(product.flashSalePrice!)}</span>
-                        <span className="text-white/30 text-xs line-through">{formatPrice(product.price)}</span>
-                        <span className="bg-red-600 text-white text-[9px] tracking-wider px-2 py-0.5">
-                          -{Math.round((1 - product.flashSalePrice! / product.price) * 100)}%
-                        </span>
-                      </div>
-                    </div>
+          <div className="relative max-w-[1440px] mx-auto px-6 md:px-12">
+            <RevealSection>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap size={14} className="fill-red-500 stroke-red-500" />
+                    <p className="text-red-500 text-[10px] tracking-[0.35em] uppercase">Giảm giá Sốc</p>
                   </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+                  <h2 className="font-['Cormorant_Garamond'] text-white text-4xl md:text-5xl">{activeCampaign.name}</h2>
+                </div>
+                <div className="flex items-center gap-4 md:gap-8">
+                  <CountBox value={countdown.h} label="Giờ" />
+                  <span className="font-['Cormorant_Garamond'] text-white/30 text-5xl -mt-4">:</span>
+                  <CountBox value={countdown.m} label="Phút" />
+                  <span className="font-['Cormorant_Garamond'] text-white/30 text-5xl -mt-4">:</span>
+                  <CountBox value={countdown.s} label="Giây" />
+                </div>
+              </div>
+            </RevealSection>
 
-          <div className="text-center mt-12">
-            <Link href="/flash-sale"
-              className="inline-flex items-center gap-3 border border-white/30 text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:border-white transition-all duration-300"
-            >
-              Xem tất cả sản phẩm khuyến mãi <ArrowRight size={14} />
-            </Link>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+              {flashSaleProducts.map((product: any, i: number) => {
+                const campaignProduct = activeCampaign.products.find(cp => cp.productId === product.id);
+                const salePrice = campaignProduct?.salePrice || product.price;
+
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: i * 0.1 }}
+                  >
+                    <Link href={`/shop/${product.id}`} className="group block">
+                      <div className="relative overflow-hidden aspect-[3/4] bg-zinc-900">
+                        <ImageWithFallback
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                        <div className="absolute bottom-0 left-0 p-5">
+                          <p className="text-white/60 text-[9px] tracking-[0.2em] uppercase mb-1">{product.category}</p>
+                          <h3 className="font-['Cormorant_Garamond'] text-white text-xl mb-2">{product.name}</h3>
+                          <div className="flex items-center gap-3">
+                            <span className="text-red-400 text-sm">{formatPrice(salePrice)}</span>
+                            <span className="text-white/30 text-xs line-through">{formatPrice(product.price)}</span>
+                            <span className="bg-red-600 text-white text-[9px] tracking-wider px-2 py-0.5">
+                              -{Math.round((1 - salePrice / product.price) * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="text-center mt-12">
+              <Link href="/flash-sale"
+                className="inline-flex items-center gap-3 border border-white/30 text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:border-white transition-all duration-300"
+              >
+                Xem tất cả sản phẩm khuyến mãi <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* REWARDS */}
       <section className="py-20 md:py-28 bg-[#F8F6F2]">

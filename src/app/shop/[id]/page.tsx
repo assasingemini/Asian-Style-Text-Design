@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, ArrowRight, Share2 } from 'lucide-react';
+import { Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, ArrowRight, Share2, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { reviews, formatPrice } from '../../data/products';
 import { useApp } from '../../context/AppContext';
@@ -13,7 +13,7 @@ import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useRouter();
-  const { addToCart, toggleWishlist, wishlist, isLoggedIn, products } = useApp();
+  const { addToCart, toggleWishlist, wishlist, isLoggedIn, products, getSalePrice } = useApp();
 
   const product = products.find(p => p.id === id);
   const productReviews = reviews.filter(r => r.productId === id);
@@ -40,7 +40,7 @@ export default function ProductDetailPage() {
   }
 
   const isWishlisted = wishlist.includes(product.id);
-  const displayPrice = product.isFlashSale && product.flashSalePrice ? product.flashSalePrice : product.price;
+  const { isSale, price: displayPrice } = getSalePrice(product);
 
   const handleAddToCart = () => {
     if (!isLoggedIn) { navigate.push('/login'); return; }
@@ -146,6 +146,9 @@ export default function ProductDetailPage() {
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   {product.isNew && <span className="bg-black text-white text-[9px] tracking-[0.2em] px-2 py-1 uppercase">Mới</span>}
                   {product.isBestseller && <span className="bg-white text-black text-[9px] tracking-[0.2em] px-2 py-1 uppercase border border-black/20">Bán chạy</span>}
+                  {isSale && <span className="bg-red-600 text-white text-[9px] tracking-[0.2em] px-2 py-1 uppercase flex items-center gap-1">
+                    <Zap size={8} className="fill-white" /> Flash Sale
+                  </span>}
                   {product.stock <= 5 && <span className="bg-red-600 text-white text-[9px] tracking-[0.2em] px-2 py-1 uppercase">Chỉ còn {product.stock} sản phẩm</span>}
                 </div>
               </div>
@@ -185,12 +188,12 @@ export default function ProductDetailPage() {
 
             {/* Price */}
             <div className="flex items-center gap-4 mb-6">
-              {product.isFlashSale && product.flashSalePrice ? (
+              {isSale ? (
                 <>
-                  <span className="font-['Cormorant_Garamond'] text-3xl text-red-600">{formatPrice(product.flashSalePrice)}</span>
+                  <span className="font-['Cormorant_Garamond'] text-3xl text-red-600">{formatPrice(displayPrice)}</span>
                   <span className="text-black/30 line-through text-xl">{formatPrice(product.price)}</span>
                   <span className="bg-red-600 text-white text-xs px-2 py-0.5">
-                    -{Math.round((1 - product.flashSalePrice / product.price) * 100)}%
+                    -{Math.round((1 - displayPrice / product.price) * 100)}%
                   </span>
                 </>
               ) : product.originalPrice ? (

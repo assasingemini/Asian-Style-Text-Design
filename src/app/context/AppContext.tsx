@@ -68,6 +68,19 @@ export interface PaymentSettings {
   bankAccountName: string;
 }
 
+export interface FlashSaleProduct {
+  productId: string;
+  salePrice: number;
+}
+
+export interface FlashSaleCampaign {
+  id: string;
+  name: string;
+  endDate: string; // ISO string
+  isActive: boolean;
+  products: FlashSaleProduct[];
+}
+
 export type { AboutContent };
 
 interface AppContextType {
@@ -109,6 +122,12 @@ interface AppContextType {
   updateRewardItem: (id: string, item: Partial<RewardItem>) => void;
   deleteRewardItem: (id: string) => void;
   addOrder: (items: CartItem[], total: number) => Promise<string>;
+  initialized: boolean;
+  flashSaleCampaigns: FlashSaleCampaign[];
+  addFlashCampaign: (campaign: Omit<FlashSaleCampaign, 'id'>) => void;
+  updateFlashCampaign: (id: string, campaign: Partial<FlashSaleCampaign>) => void;
+  deleteFlashCampaign: (id: string) => void;
+  getSalePrice: (product: Product) => { isSale: boolean; price: number };
 }
 
 const STORAGE_KEYS = {
@@ -218,6 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [aboutContent, setAboutContent] = useState<AboutContent>(defaultAboutContent);
   const [products, setProducts] = useState<Product[]>([]);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [flashSaleCampaigns, setFlashSaleCampaigns] = useState<FlashSaleCampaign[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   // Initialize from localStorage and Server Session
@@ -270,14 +290,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getSettingAction('pointsConfig', defaultPointsConfig),
       getSettingAction('rewardItems', defaultRewards),
       getSettingAction('paymentSettings', defaultPaymentSettings),
-      getSettingAction('aboutContent', defaultAboutContent)
-    ]).then(([dbProducts, dbBlogs, pointsCfg, rewards, payments, about]) => {
+      getSettingAction('aboutContent', defaultAboutContent),
+      getSettingAction('flashSaleCampaigns', [])
+    ]).then(([dbProducts, dbBlogs, pointsCfg, rewards, payments, about, flashCampaigns]) => {
       setProducts((dbProducts as any) || []);
       setBlogPosts((dbBlogs as any) || []);
       setPointsConfig(pointsCfg);
       setRewardItems(rewards);
       setPaymentSettings(payments);
       setAboutContent(about);
+      setFlashSaleCampaigns(flashCampaigns || []);
 
       setInitialized(true);
     });
@@ -315,10 +337,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setNotification(null), 3500);
   }, []);
 
+  const getSalePrice = useCallback((product: Product) => {
+    // Check if product is in an active, enabled campaign
+    const now = new Date();
+    const activeCampaign = flashSaleCampaigns.find(c => 
+      c.isActive && 
+      new Date(c.endDate) > now && 
+      c.products.some(p => p.productId === product.id)
+    );
+
+    if (activeCampaign) {
+      const campaignProduct = activeCampaign.products.find(p => p.productId === product.id);
+      if (campaignProduct) {
+        return { isSale: true, price: campaignProduct.salePrice };
+      }
+    }
+
+    // Fallback to legacy flash sale or normal price
+    if (product.isFlashSale && product.flashSalePrice) {
+      return { isSale: true, price: product.flashSalePrice };
+    }
+    
+    return { isSale: false, price: product.price };
+  }, [flashSaleCampaigns]);
+
   const cartTotal = cart.reduce((sum, item) => {
-    const price = item.product.isFlashSale && item.product.flashSalePrice
-      ? item.product.flashSalePrice
-      : item.product.price;
+    const { price } = getSalePrice(item.product);
     return sum + price * item.quantity;
   }, 0);
 
@@ -436,7 +480,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       size: item.size,
       color: item.color,
       quantity: item.quantity,
-      price: item.product.isFlashSale && item.product.flashSalePrice ? item.product.flashSalePrice : item.product.price
+      price: getSalePrice(item.product).price
     }));
 
     const result = await createOrderAction({ items: simplifiedItems, total, customerName: user?.name });
@@ -483,9 +527,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (cartItems && cartItems.length > 0) {
       // Calculate points per product based on product price
       for (const item of cartItems) {
-        const productPrice = item.product.isFlashSale && item.product.flashSalePrice
-          ? item.product.flashSalePrice
-          : item.product.price;
+        const { price: productPrice } = getSalePrice(item.product);
         const pointsPerProduct = getPointsForPrice(productPrice, config);
         earned += pointsPerProduct * item.quantity;
       }
@@ -582,6 +624,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showNotification('Đã xóa phần thưởng', 'info');
   }, [showNotification]);
 
+  // ADMIN: Flash Sale CRUD
+  const addFlashCampaign = useCallback((campaign: Omit<FlashSaleCampaign, 'id'>) => {
+    const newCampaign: FlashSaleCampaign = { ...campaign, id: generateId() };
+    setFlashSaleCampaigns(prev => {
+      const updated = [...prev, newCampaign];
+      saveSettingAction('flashSaleCampaigns', updated);
+      return updated;
+    });
+    showNotification('Đã thêm chiến dịch Flash Sale mới', 'success');
+  }, [showNotification]);
+
+  const updateFlashCampaign = useCallback((id: string, updates: Partial<FlashSaleCampaign>) => {
+    setFlashSaleCampaigns(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, ...updates } : c);
+      saveSettingAction('flashSaleCampaigns', updated);
+      return updated;
+    });
+    showNotification('Đã cập nhật chiến dịch Flash Sale', 'success');
+  }, [showNotification]);
+
+  const deleteFlashCampaign = useCallback((id: string) => {
+    setFlashSaleCampaigns(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      saveSettingAction('flashSaleCampaigns', updated);
+      return updated;
+    });
+    showNotification('Đã xóa chiến dịch', 'info');
+  }, [showNotification]);
+
   const updateAdminProducts = useCallback((newProducts: Product[]) => {
     setProducts(newProducts);
   }, []);
@@ -630,6 +701,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       aboutContent,
       updateAboutContent,
       updatePaymentSettings,
+      initialized,
+      flashSaleCampaigns,
+      addFlashCampaign,
+      updateFlashCampaign,
+      deleteFlashCampaign,
+      getSalePrice,
     }}>
       {children}
     </AppContext.Provider>

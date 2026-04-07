@@ -22,7 +22,7 @@ const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 function ProductList() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
-  const { products } = useApp();
+  const { products, initialized } = useApp();
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState(0);
@@ -71,7 +71,7 @@ function ProductList() {
     }
 
     return result;
-  }, [selectedCategory, selectedPriceRange, selectedSizes, sortBy, searchQuery]);
+  }, [selectedCategory, selectedPriceRange, selectedSizes, sortBy, searchQuery, products]);
 
   const sortLabels: Record<SortOption, string> = {
     newest: 'Mới nhất',
@@ -266,7 +266,12 @@ function ProductList() {
         </AnimatePresence>
 
         {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
+        {!initialized ? (
+          <div className="py-32 text-center">
+             <div className="inline-block w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin mb-4" />
+             <p className="text-black/40 text-sm tracking-widest uppercase">Đang tải sản phẩm...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="py-32 text-center">
             <p className="font-['Cormorant_Garamond'] text-4xl text-black/20 mb-4">Không tìm thấy sản phẩm</p>
             <p className="text-black/40 text-sm tracking-wide mb-8">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
