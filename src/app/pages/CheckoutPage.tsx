@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { ArrowLeft, ArrowRight, Check, CreditCard, Wallet, Building, LogIn } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Wallet, Building, LogIn, HandCoins } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
 import { formatPrice } from '../data/products';
@@ -14,20 +14,17 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'confirm', label: 'Xác nhận' },
 ];
 
-const paymentMethods = [
-  { id: 'card', label: 'Thẻ Tín dụng / Ghi nợ', icon: CreditCard },
-  { id: 'momo', label: 'Ví MoMo', icon: Wallet },
-  { id: 'bank', label: 'Chuyển khoản Ngân hàng', icon: Building },
-];
+
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, cartTotal, discountAmount, clearCart, user, redeemPoints, isLoggedIn, earnPoints } = useApp();
+  const { cart, cartTotal, discountAmount, clearCart, user, redeemPoints, isLoggedIn, earnPoints, addOrder, paymentSettings } = useApp();
   const [step, setStep] = useState<Step>('shipping');
   const [usePoints, setUsePoints] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
+  const [shippingError, setShippingError] = useState('');
 
   const [shipping, setShipping] = useState({
     name: user?.name || '',
@@ -45,11 +42,19 @@ export default function CheckoutPage() {
 
   const stepIndex = STEPS.findIndex(s => s.key === step);
 
+  const availablePaymentMethods = [
+    { id: 'cod', label: 'Thanh toán khi nhận hàng', icon: HandCoins },
+    ...(paymentSettings?.momoEnabled ? [{ id: 'momo', label: 'Ví MoMo', icon: Wallet }] : []),
+    ...(paymentSettings?.bankEnabled ? [{ id: 'bank', label: 'Chuyển khoản Ngân hàng', icon: Building }] : []),
+  ];
+
   const handleNext = () => {
     if (step === 'shipping') {
       if (!shipping.name || !shipping.email || !shipping.phone || !shipping.address) {
+        setShippingError('Vui lòng điền đầy đủ các thông tin bắt buộc (*)');
         return;
       }
+      setShippingError('');
       setStep('payment');
     } else if (step === 'payment') {
       setStep('confirm');
@@ -64,6 +69,8 @@ export default function CheckoutPage() {
     await new Promise(resolve => setTimeout(resolve, 1500));
     // Earn points based on admin-configured price thresholds per product
     earnPoints(finalTotal, cart);
+    // Create real order
+    addOrder(cart, finalTotal);
     clearCart();
     navigate('/checkout/confirm');
   };
@@ -141,6 +148,11 @@ export default function CheckoutPage() {
                   transition={{ duration: 0.3 }}
                 >
                   <h2 className="font-['Cormorant_Garamond'] text-2xl mb-8">Thông tin vận chuyển</h2>
+                  {shippingError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 text-sm tracking-wide">
+                      {shippingError}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="md:col-span-2">
                       <label className="block text-[10px] tracking-[0.25em] uppercase text-black/60 mb-2">Họ và tên *</label>
@@ -257,7 +269,7 @@ export default function CheckoutPage() {
                 >
                   <h2 className="font-['Cormorant_Garamond'] text-2xl mb-8">Phương thức thanh toán</h2>
                   <div className="space-y-3 mb-8">
-                    {paymentMethods.map(method => {
+                    {availablePaymentMethods.map(method => {
                       const Icon = method.icon;
                       return (
                         <button
@@ -279,47 +291,25 @@ export default function CheckoutPage() {
                     })}
                   </div>
 
-                  {paymentMethod === 'card' && (
+                  {paymentMethod === 'cod' && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="space-y-5"
+                      className="p-6 border border-black/10 bg-[#F8F6F2] text-center space-y-2"
                     >
-                      <div>
-                        <label className="block text-[10px] tracking-[0.25em] uppercase text-black/60 mb-2">Số thẻ</label>
-                        <input
-                          type="text"
-                          placeholder="4242 4242 4242 4242"
-                          className="w-full border border-black/20 px-4 py-3 text-sm outline-none focus:border-black transition-colors tracking-wider"
-                          maxLength={19}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-5">
-                        <div>
-                          <label className="block text-[10px] tracking-[0.25em] uppercase text-black/60 mb-2">Hết hạn</label>
-                          <input
-                            type="text"
-                            placeholder="MM / YY"
-                            className="w-full border border-black/20 px-4 py-3 text-sm outline-none focus:border-black transition-colors tracking-wider"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] tracking-[0.25em] uppercase text-black/60 mb-2">CVV</label>
-                          <input
-                            type="text"
-                            placeholder="123"
-                            className="w-full border border-black/20 px-4 py-3 text-sm outline-none focus:border-black transition-colors tracking-wider"
-                            maxLength={4}
-                          />
-                        </div>
-                      </div>
+                      <p className="text-sm tracking-wide">Bạn sẽ thanh toán bằng tiền mặt khi nhận được hàng.</p>
+                      <p className="text-xs text-black/40">Vui lòng chuẩn bị sẵn số tiền {formatPrice(finalTotal)}.</p>
                     </motion.div>
                   )}
 
                   {paymentMethod === 'momo' && (
                     <div className="p-6 border border-black/10 bg-[#F8F6F2] text-center">
-                      <div className="w-32 h-32 bg-black/10 mx-auto mb-4 flex items-center justify-center">
-                        <p className="text-xs text-black/40">Mã QR MoMo</p>
+                      <div className="w-40 h-40 bg-white border border-black/10 mx-auto mb-4 flex items-center justify-center overflow-hidden">
+                        {paymentSettings?.momoQrUrl ? (
+                          <img src={paymentSettings.momoQrUrl} alt="Mã QR MoMo" className="max-w-full max-h-full object-contain" />
+                        ) : (
+                          <p className="text-xs text-black/40">Mã QR MoMo</p>
+                        )}
                       </div>
                       <p className="text-sm text-black/60 tracking-wide">Quét mã bằng ứng dụng MoMo để thanh toán</p>
                       <p className="font-['Cormorant_Garamond'] text-xl mt-2">{formatPrice(finalTotal)}</p>
@@ -329,13 +319,13 @@ export default function CheckoutPage() {
                   {paymentMethod === 'bank' && (
                     <div className="p-6 border border-black/10 bg-[#F8F6F2] space-y-3">
                       {[
-                        ['Ngân hàng', 'Vietcombank'],
-                        ['Số tài khoản', '1234 5678 9012'],
-                        ['Tên tài khoản', 'KUMO FASHION CO LTD'],
+                        ['Ngân hàng', paymentSettings?.bankName || 'Chưa thiết lập'],
+                        ['Số tài khoản', paymentSettings?.bankAccount || 'Chưa thiết lập'],
+                        ['Tên tài khoản', paymentSettings?.bankAccountName || 'Chưa thiết lập'],
                         ['Số tiền', formatPrice(finalTotal)],
                         ['Nội dung', 'KUMO-' + Date.now().toString().slice(-6)],
                       ].map(([label, value]) => (
-                        <div key={label} className="flex justify-between">
+                        <div key={label as string} className="flex justify-between">
                           <span className="text-xs text-black/40 tracking-wide">{label}</span>
                           <span className="text-sm tracking-wide">{value}</span>
                         </div>
@@ -381,7 +371,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-black/60">Thanh toán:</span>
-                      <span>{paymentMethods.find(m => m.id === paymentMethod)?.label}</span>
+                      <span>{availablePaymentMethods.find(m => m.id === paymentMethod)?.label}</span>
                     </div>
                   </div>
                 </motion.div>

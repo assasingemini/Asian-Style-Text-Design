@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText, Zap, Award, Coins,
-  Plus, Pencil, Trash2, Search, DollarSign, Eye, X, Menu, Save, ToggleLeft, ToggleRight, Shield, BookOpen, ImagePlus
+  Plus, Pencil, Trash2, Search, DollarSign, Eye, X, Menu, Save, ToggleLeft, ToggleRight, Shield, BookOpen, ImagePlus, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { products, formatPrice } from '../data/products';
+import { products, formatPrice, Product } from '../data/products';
 import { blogPosts } from '../data/blog';
 import { useApp, PointsRule, RewardItem, AboutContent } from '../context/AppContext';
 
-type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about';
+type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about' | 'payments';
 
 const navItems: { key: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },
@@ -25,6 +25,7 @@ const navItems: { key: AdminTab; label: string; icon: typeof LayoutDashboard }[]
   { key: 'points', label: 'Cấu hình điểm', icon: Coins },
   { key: 'rewards', label: 'Ưu đãi', icon: Award },
   { key: 'about', label: 'Trang Giới thiệu', icon: BookOpen },
+  { key: 'payments', label: 'Thanh toán', icon: CreditCard },
 ];
 
 const revenueData = [
@@ -74,12 +75,17 @@ const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { isLoggedIn, isAdmin, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent } = useApp();
+  const { isLoggedIn, isAdmin, orders, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: '', price: 0, originalPrice: 0, stock: 0, category: 'Áo khoác',
+    subcategory: '', description: '', images: [''], sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Đen'], isNew: false, isBestseller: false
+  });
 
   // Points config state
   const [editingPoints, setEditingPoints] = useState<PointsRule[]>(pointsConfig);
@@ -97,36 +103,78 @@ export default function AdminPage() {
   const [aboutChanged, setAboutChanged] = useState(false);
   const [aboutSection, setAboutSection] = useState('hero');
 
-  // Orders state
-  const [viewingOrder, setViewingOrder] = useState<typeof mockOrders[0] | null>(null);
-  const [updatingOrder, setUpdatingOrder] = useState<typeof mockOrders[0] | null>(null);
+  // Orders state - sync with real orders from context
+  const [viewingOrder, setViewingOrder] = useState<{ id: string; customer: string; total: number; status: string; date: string; items: number } | null>(null);
+  const [updatingOrder, setUpdatingOrder] = useState<{ id: string; customer: string; total: number; status: string; date: string; items: number } | null>(null);
   const [localOrders, setLocalOrders] = useState(mockOrders);
 
-  // Users state
+  // Users state - read from localStorage
+  const [adminUsers] = useState(() => {
+    if (typeof window === 'undefined') return mockUsers;
+    try {
+      const stored = localStorage.getItem('kumo_users');
+      if (stored) {
+        const users = JSON.parse(stored);
+        const mapped = users.filter((u: any) => u.role !== 'admin').map((u: any) => ({
+          id: u.id, name: u.name, email: u.email, points: u.points || 0,
+          orders: u.totalOrders || 0, joined: u.joinDate || new Date().toISOString().split('T')[0],
+        }));
+        return mapped.length > 0 ? mapped : mockUsers;
+      }
+    } catch { /* fallback */ }
+    return mockUsers;
+  });
   const [viewingUser, setViewingUser] = useState<typeof mockUsers[0] | null>(null);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
-  // Blog state
+  // Blog state - persist to localStorage
   const [showBlogModal, setShowBlogModal] = useState(false);
   const [editingBlog, setEditingBlog] = useState<string | null>(null);
-  const [localBlogPosts, setLocalBlogPosts] = useState(blogPosts);
+  const [localBlogPosts, setLocalBlogPosts] = useState(() => {
+    if (typeof window === 'undefined') return blogPosts;
+    try { const s = localStorage.getItem('kumo_admin_blog'); return s ? JSON.parse(s) : blogPosts; } catch { return blogPosts; }
+  });
   const [blogForm, setBlogForm] = useState({ title: '', category: '', author: '', content: '', image: '' });
 
-  // Flash sales state
-  const [showFlashModal, setShowFlashModal] = useState(false);
-  const [editingFlash, setEditingFlash] = useState<string | null>(null);
-  const [flashCampaigns, setFlashCampaigns] = useState([
+  // Flash sales state - persist to localStorage
+  const defaultFlash = [
     { id: 'f1', name: 'Ưu đãi Nửa đêm', status: 'Hoạt động', products: 2, discount: 21, ends: '7g 23ph', revenue: '₫4.2M' },
     { id: 'f2', name: 'Đặc biệt Cuối tuần', status: 'Đã lên lịch', products: 5, discount: 15, ends: '2n 5g', revenue: '—' },
     { id: 'f3', name: 'Spring Clear', status: 'Đã kết thúc', products: 8, discount: 30, ends: 'Đã kết thúc', revenue: '₫18.7M' },
-  ]);
+  ];
+  const [showFlashModal, setShowFlashModal] = useState(false);
+  const [editingFlash, setEditingFlash] = useState<string | null>(null);
+  const [flashCampaigns, setFlashCampaigns] = useState(() => {
+    if (typeof window === 'undefined') return defaultFlash;
+    try { const s = localStorage.getItem('kumo_admin_flash'); return s ? JSON.parse(s) : defaultFlash; } catch { return defaultFlash; }
+  });
   const [flashForm, setFlashForm] = useState({ name: '', products: 0, discount: 0 });
 
-  // Product delete
+  // Product state - persist to localStorage
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
-  const [localProducts, setLocalProducts] = useState(products);
+  const [localProducts, setLocalProducts] = useState(() => {
+    if (typeof window === 'undefined') return products;
+    try { const s = localStorage.getItem('kumo_admin_products'); return s ? JSON.parse(s) : products; } catch { return products; }
+  });
 
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
+
+  // Persist to localStorage
+  useEffect(() => { localStorage.setItem('kumo_admin_products', JSON.stringify(localProducts)); }, [localProducts]);
+  useEffect(() => { localStorage.setItem('kumo_admin_blog', JSON.stringify(localBlogPosts)); }, [localBlogPosts]);
+  useEffect(() => { localStorage.setItem('kumo_admin_flash', JSON.stringify(flashCampaigns)); }, [flashCampaigns]);
+
+  // Sync real orders from context
+  useEffect(() => {
+    if (orders.length > 0) {
+      const adminOrders = orders.map((o: any) => ({
+        id: o.id, customer: o.customerName || 'Khách hàng',
+        total: o.total, status: o.status, date: o.date,
+        items: Array.isArray(o.items) ? o.items.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0,
+      }));
+      setLocalOrders(adminOrders);
+    }
+  }, [orders]);
 
   const updateEA = (updates: Partial<AboutContent>) => {
     setEditingAbout(prev => ({ ...prev, ...updates }));
@@ -166,13 +214,65 @@ export default function AdminPage() {
     { label: 'Sản phẩm đang bán', value: localProducts.length.toString(), change: '+2', positive: true, icon: Package },
   ];
 
-  // Product delete handler
+  // Product CRUD handlers
   const confirmDeleteProduct = (id: string) => setDeletingProduct(id);
   const executeDeleteProduct = () => {
     if (deletingProduct) {
       setLocalProducts(prev => prev.filter(p => p.id !== deletingProduct));
       setDeletingProduct(null);
     }
+  };
+
+  const openAddProduct = () => {
+    setProductForm({
+      name: '', price: 0, originalPrice: 0, stock: 0, category: 'Áo khoác',
+      subcategory: '', description: '', images: [''], sizes: ['S', 'M', 'L', 'XL'],
+      colors: ['Đen'], isNew: false, isBestseller: false
+    });
+    setEditingProduct(null);
+    setShowAddProduct(true);
+  };
+
+  const openEditProduct = (product: Product) => {
+    setProductForm({
+      name: product.name, price: product.price, originalPrice: product.originalPrice || 0,
+      stock: product.stock, category: product.category, subcategory: product.subcategory,
+      description: product.description, images: [...product.images], sizes: [...product.sizes],
+      colors: [...product.colors], isNew: product.isNew || false, isBestseller: product.isBestseller || false
+    });
+    setEditingProduct(product.id);
+    setShowAddProduct(true);
+  };
+
+  const saveProduct = () => {
+    if (editingProduct) {
+      setLocalProducts(prev => prev.map(p => p.id === editingProduct ? {
+        ...p, name: productForm.name, price: productForm.price,
+        originalPrice: productForm.originalPrice || undefined,
+        stock: productForm.stock, category: productForm.category,
+        subcategory: productForm.subcategory || productForm.category,
+        description: productForm.description,
+        images: productForm.images.filter(Boolean).length > 0 ? productForm.images.filter(Boolean) : p.images,
+        sizes: productForm.sizes, colors: productForm.colors,
+        isNew: productForm.isNew, isBestseller: productForm.isBestseller,
+      } : p));
+    } else {
+      const newProduct: Product = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: productForm.name || 'Sản phẩm mới', price: productForm.price,
+        originalPrice: productForm.originalPrice || undefined,
+        stock: productForm.stock, category: productForm.category,
+        subcategory: productForm.subcategory || productForm.category,
+        description: productForm.description || '', details: [],
+        images: productForm.images.filter(Boolean).length > 0 ? productForm.images.filter(Boolean) : ['https://images.unsplash.com/photo-1683642765591-2370edc15193?w=400'],
+        sizes: productForm.sizes, colors: productForm.colors,
+        rating: 0, reviewCount: 0, tags: [],
+        isNew: productForm.isNew, isBestseller: productForm.isBestseller,
+      };
+      setLocalProducts(prev => [newProduct, ...prev]);
+    }
+    setShowAddProduct(false);
+    setEditingProduct(null);
   };
 
   // Orders handlers
@@ -406,7 +506,7 @@ export default function AdminPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead><tr className="border-b border-black/10">{['Mã đơn hàng','Khách hàng','Sản phẩm','Tổng cộng','Ngày','Trạng thái'].map(h=><th key={h} className="text-left pb-3 text-[9px] tracking-[0.25em] uppercase text-black/40 font-normal pr-6">{h}</th>)}</tr></thead>
-                    <tbody>{mockOrders.map(order=>(
+                    <tbody>{localOrders.slice(0, 5).map(order=>(
                       <tr key={order.id} className="border-b border-black/5 hover:bg-black/2 transition-colors">
                         <td className="py-3.5 pr-6 font-medium tracking-wide">{order.id}</td>
                         <td className="py-3.5 pr-6 text-black/70">{order.customer}</td>
@@ -427,7 +527,7 @@ export default function AdminPage() {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <p className="text-sm text-black/50 tracking-wide">{filteredProducts.length} sản phẩm</p>
-                <button onClick={() => setShowAddProduct(true)} className="flex items-center gap-2 bg-black text-white text-xs tracking-[0.2em] uppercase px-5 py-3 hover:bg-black/90 transition-colors">
+                <button onClick={openAddProduct} className="flex items-center gap-2 bg-black text-white text-xs tracking-[0.2em] uppercase px-5 py-3 hover:bg-black/90 transition-colors">
                   <Plus size={14} /> Thêm sản phẩm
                 </button>
               </div>
@@ -442,7 +542,7 @@ export default function AdminPage() {
                         <td className="px-6 py-4 font-['Cormorant_Garamond'] text-base">{formatPrice(product.price)}</td>
                         <td className="px-6 py-4"><span className={`text-[9px] tracking-wider px-2 py-1 ${product.stock <= 5 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{product.stock} chiếc</span></td>
                         <td className="px-6 py-4"><div className="flex gap-1 flex-wrap">{product.isNew && <span className="text-[9px] tracking-wider bg-black text-white px-1.5 py-0.5">Mới</span>}{product.isBestseller && <span className="text-[9px] tracking-wider bg-gray-100 px-1.5 py-0.5">Bán chạy</span>}{product.isFlashSale && <span className="text-[9px] tracking-wider bg-red-100 text-red-700 px-1.5 py-0.5">Sale</span>}</div></td>
-                        <td className="px-6 py-4"><div className="flex gap-2"><button onClick={() => setEditingProduct(product.id)} className="w-7 h-7 border border-black/15 flex items-center justify-center hover:border-black transition-colors"><Pencil size={11} /></button><button onClick={() => confirmDeleteProduct(product.id)} className="w-7 h-7 border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors text-red-400"><Trash2 size={11} /></button></div></td>
+                        <td className="px-6 py-4"><div className="flex gap-2"><button onClick={() => openEditProduct(product)} className="w-7 h-7 border border-black/15 flex items-center justify-center hover:border-black transition-colors"><Pencil size={11} /></button><button onClick={() => confirmDeleteProduct(product.id)} className="w-7 h-7 border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors text-red-400"><Trash2 size={11} /></button></div></td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -457,15 +557,25 @@ export default function AdminPage() {
                         <button onClick={() => { setShowAddProduct(false); setEditingProduct(null); }}><X size={18} /></button>
                       </div>
                       <div className="p-6 grid grid-cols-2 gap-5">
-                        {[{label:'Tên sản phẩm',placeholder:'Áo khoác Void Oversized',full:true},{label:'Giá (VNĐ)',placeholder:'289000'},{label:'Giá gốc',placeholder:'389000'},{label:'Tồn kho',placeholder:'20'}].map(field=>(
-                          <div key={field.label} className={field.full?'col-span-2':''}><label className={labelCls}>{field.label}</label><input type="text" placeholder={field.placeholder} className={inputCls} /></div>
-                        ))}
-                        <div className="col-span-2"><label className={labelCls}>Danh mục</label><select className={`${inputCls} bg-white`}>{['Áo khoác','Áo','Quần & Váy','Đầm','Phụ kiện'].map(cat=><option key={cat} value={cat}>{cat}</option>)}</select></div>
-                        <div className="col-span-2"><label className={labelCls}>Mô tả</label><textarea rows={3} className={`${inputCls} resize-none tracking-wide`} placeholder="Mô tả sản phẩm..." /></div>
+                        <div className="col-span-2"><label className={labelCls}>Tên sản phẩm</label><input type="text" value={productForm.name} onChange={e => setProductForm(f => ({...f, name: e.target.value}))} placeholder="Áo khoác Void Oversized" className={inputCls} /></div>
+                        <div><label className={labelCls}>Giá (VNĐ)</label><input type="number" value={productForm.price || ''} onChange={e => setProductForm(f => ({...f, price: Number(e.target.value)}))} placeholder="289000" className={inputCls} /></div>
+                        <div><label className={labelCls}>Giá gốc</label><input type="number" value={productForm.originalPrice || ''} onChange={e => setProductForm(f => ({...f, originalPrice: Number(e.target.value)}))} placeholder="389000" className={inputCls} /></div>
+                        <div><label className={labelCls}>Tồn kho</label><input type="number" value={productForm.stock || ''} onChange={e => setProductForm(f => ({...f, stock: Number(e.target.value)}))} placeholder="20" className={inputCls} /></div>
+                        <div><label className={labelCls}>Danh mục</label><select value={productForm.category} onChange={e => setProductForm(f => ({...f, category: e.target.value}))} className={`${inputCls} bg-white`}>{
+                          ['Áo khoác','Áo','Quần & Váy','Đầm','Phụ kiện'].map(cat=><option key={cat} value={cat}>{cat}</option>)
+                        }</select></div>
+                        <div className="col-span-2"><label className={labelCls}>URL hình ảnh (phân cách bằng dấu phẩy)</label><input type="text" value={productForm.images.join(', ')} onChange={e => setProductForm(f => ({...f, images: e.target.value.split(',').map(s => s.trim()).filter(Boolean)}))} placeholder="https://..." className={inputCls} /></div>
+                        <div><label className={labelCls}>Kích cỡ (phân cách bằng dấu phẩy)</label><input type="text" value={productForm.sizes.join(', ')} onChange={e => setProductForm(f => ({...f, sizes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)}))} placeholder="S, M, L, XL" className={inputCls} /></div>
+                        <div><label className={labelCls}>Màu sắc (phân cách bằng dấu phẩy)</label><input type="text" value={productForm.colors.join(', ')} onChange={e => setProductForm(f => ({...f, colors: e.target.value.split(',').map(s => s.trim()).filter(Boolean)}))} placeholder="Đen, Trắng" className={inputCls} /></div>
+                        <div className="col-span-2"><label className={labelCls}>Mô tả</label><textarea rows={3} value={productForm.description} onChange={e => setProductForm(f => ({...f, description: e.target.value}))} className={`${inputCls} resize-none tracking-wide`} placeholder="Mô tả sản phẩm..." /></div>
+                        <div className="col-span-2 flex gap-6">
+                          <label className="flex items-center gap-2 text-xs tracking-wide cursor-pointer"><input type="checkbox" checked={productForm.isNew} onChange={e => setProductForm(f => ({...f, isNew: e.target.checked}))} className="accent-black" /> Sản phẩm mới</label>
+                          <label className="flex items-center gap-2 text-xs tracking-wide cursor-pointer"><input type="checkbox" checked={productForm.isBestseller} onChange={e => setProductForm(f => ({...f, isBestseller: e.target.checked}))} className="accent-black" /> Bán chạy</label>
+                        </div>
                       </div>
                       <div className="p-6 border-t border-black/10 flex gap-3 justify-end">
                         <button onClick={() => { setShowAddProduct(false); setEditingProduct(null); }} className="px-6 py-3 border border-black/20 text-xs tracking-[0.2em] uppercase hover:border-black transition-colors">Hủy</button>
-                        <button onClick={() => { setShowAddProduct(false); setEditingProduct(null); }} className="px-6 py-3 bg-black text-white text-xs tracking-[0.2em] uppercase hover:bg-black/90 transition-colors">{editingProduct ? 'Lưu thay đổi' : 'Tạo sản phẩm'}</button>
+                        <button onClick={saveProduct} className="px-6 py-3 bg-black text-white text-xs tracking-[0.2em] uppercase hover:bg-black/90 transition-colors">{editingProduct ? 'Lưu thay đổi' : 'Tạo sản phẩm'}</button>
                       </div>
                     </motion.div>
                   </motion.div>
@@ -574,12 +684,12 @@ export default function AdminPage() {
               <div className="bg-white border border-black/10">
                 <div className="p-6 border-b border-black/10 flex items-center justify-between">
                   <h2 className="font-['Cormorant_Garamond'] text-2xl">Quản lý người dùng</h2>
-                  <span className="text-sm text-black/40">Tổng {mockUsers.length} người dùng</span>
+                  <span className="text-sm text-black/40">Tổng {adminUsers.length} người dùng</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead><tr className="border-b border-black/10 bg-[#F8F8F6]">{['Người dùng','Email','Điểm','Đơn hàng','Tham gia','Trạng thái','Thao tác'].map(h=><th key={h} className="text-left px-6 py-4 text-[9px] tracking-[0.25em] uppercase text-black/40 font-normal">{h}</th>)}</tr></thead>
-                    <tbody>{mockUsers.map(u=>(
+                    <tbody>{adminUsers.map(u=>(
                       <tr key={u.id} className={`border-b border-black/5 hover:bg-black/2 transition-colors ${blockedUsers.includes(u.id) ? 'opacity-50' : ''}`}>
                         <td className="px-6 py-4 font-medium tracking-wide">{u.name}</td>
                         <td className="px-6 py-4 text-black/50">{u.email}</td>
@@ -1075,6 +1185,100 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </>)}
+              </div>
+            </div>
+          )}
+
+          {/* PAYMENTS */}
+          {activeTab === 'payments' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="font-['Cormorant_Garamond'] text-3xl">Cài đặt thanh toán</h2>
+              </div>
+              
+              <div className="bg-white border border-black/10 p-8 max-w-3xl space-y-8">
+                {/* MoMo Settings */}
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/10">
+                    <div>
+                      <h3 className="font-['Cormorant_Garamond'] text-xl">Ví MoMo</h3>
+                      <p className="text-xs text-black/40 mt-1">Bật/tắt thanh toán qua ví điện tử MoMo</p>
+                    </div>
+                    <button
+                      onClick={() => updatePaymentSettings({ momoEnabled: !paymentSettings.momoEnabled })}
+                      className="text-black hover:opacity-60 transition-opacity"
+                    >
+                      {paymentSettings.momoEnabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} className="text-black/30" />}
+                    </button>
+                  </div>
+                  {paymentSettings.momoEnabled && (
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest text-black/60 mb-2">Đường dẫn ảnh Mã QR MoMo</label>
+                      <input
+                        type="text"
+                        value={paymentSettings.momoQrUrl}
+                        onChange={(e) => updatePaymentSettings({ momoQrUrl: e.target.value })}
+                        className="w-full border border-black/20 p-3 text-sm focus:border-black outline-none tracking-wide"
+                        placeholder="https://link-to-your-qr-code-image.png"
+                      />
+                      {paymentSettings.momoQrUrl && (
+                        <div className="mt-4 border border-black/10 p-2 w-32 h-32 bg-gray-50 flex items-center justify-center">
+                          <img src={paymentSettings.momoQrUrl} alt="MoMo QR" className="max-w-full max-h-full object-contain" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bank Settings */}
+                <div>
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-black/10">
+                    <div>
+                      <h3 className="font-['Cormorant_Garamond'] text-xl">Chuyển khoản Ngân hàng</h3>
+                      <p className="text-xs text-black/40 mt-1">Bật/tắt thanh toán qua chuyển khoản</p>
+                    </div>
+                    <button
+                      onClick={() => updatePaymentSettings({ bankEnabled: !paymentSettings.bankEnabled })}
+                      className="text-black hover:opacity-60 transition-opacity"
+                    >
+                      {paymentSettings.bankEnabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} className="text-black/30" />}
+                    </button>
+                  </div>
+                  {paymentSettings.bankEnabled && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs uppercase tracking-widest text-black/60 mb-2">Tên ngân hàng</label>
+                        <input
+                          type="text"
+                          value={paymentSettings.bankName}
+                          onChange={(e) => updatePaymentSettings({ bankName: e.target.value })}
+                          className="w-full border border-black/20 p-3 text-sm focus:border-black outline-none tracking-wide"
+                          placeholder="Vietcombank"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase tracking-widest text-black/60 mb-2">Số tài khoản</label>
+                        <input
+                          type="text"
+                          value={paymentSettings.bankAccount}
+                          onChange={(e) => updatePaymentSettings({ bankAccount: e.target.value })}
+                          className="w-full border border-black/20 p-3 text-sm focus:border-black outline-none tracking-wide"
+                          placeholder="1234567890"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase tracking-widest text-black/60 mb-2">Tên chủ tài khoản</label>
+                        <input
+                          type="text"
+                          value={paymentSettings.bankAccountName}
+                          onChange={(e) => updatePaymentSettings({ bankAccountName: e.target.value })}
+                          className="w-full border border-black/20 p-3 text-sm focus:border-black outline-none tracking-wide"
+                          placeholder="KUMO FASHION"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -29,6 +29,7 @@ export interface Order {
   total: number;
   tracking?: string;
   pointsEarned?: number;
+  customerName?: string;
 }
 
 export interface PointsRule {
@@ -48,6 +49,15 @@ export interface RewardItem {
   image?: string;
 }
 
+export interface PaymentSettings {
+  momoEnabled: boolean;
+  momoQrUrl: string;
+  bankEnabled: boolean;
+  bankName: string;
+  bankAccount: string;
+  bankAccountName: string;
+}
+
 export type { AboutContent };
 
 interface AppContextType {
@@ -62,8 +72,10 @@ interface AppContextType {
   notification: { message: string; type: 'success' | 'error' | 'info' } | null;
   pointsConfig: PointsRule[];
   rewardItems: RewardItem[];
+  paymentSettings: PaymentSettings;
   aboutContent: AboutContent;
   updateAboutContent: (content: Partial<AboutContent>) => void;
+  updatePaymentSettings: (settings: Partial<PaymentSettings>) => void;
   addToCart: (product: Product, size: string, color: string, quantity?: number) => boolean;
   removeFromCart: (productId: string, size: string, color: string) => void;
   updateQuantity: (productId: string, size: string, color: string, quantity: number) => void;
@@ -82,6 +94,7 @@ interface AppContextType {
   addRewardItem: (item: Omit<RewardItem, 'id'>) => void;
   updateRewardItem: (id: string, item: Partial<RewardItem>) => void;
   deleteRewardItem: (id: string) => void;
+  addOrder: (items: CartItem[], total: number) => string;
 }
 
 const STORAGE_KEYS = {
@@ -93,6 +106,7 @@ const STORAGE_KEYS = {
   CART: 'kumo_cart',
   WISHLIST: 'kumo_wishlist',
   ABOUT: 'kumo_about',
+  PAYMENTS: 'kumo_payments',
 };
 
 // Default admin user
@@ -125,6 +139,15 @@ const defaultRewards: RewardItem[] = [
   { id: 'r5', name: 'Hộp quà bí mật', points: 2000, type: 'gift', value: 0, description: 'Nhận một hộp quà bất ngờ từ KUMO', active: true },
   { id: 'r6', name: 'Thẻ truy cập sớm', points: 1000, type: 'product', value: 0, description: 'Truy cập sớm các bộ sưu tập mới', active: true },
 ];
+
+const defaultPaymentSettings: PaymentSettings = {
+  momoEnabled: true,
+  momoQrUrl: '',
+  bankEnabled: true,
+  bankName: 'Vietcombank',
+  bankAccount: '1234 5678 9012',
+  bankAccountName: 'KUMO FASHION CO LTD',
+};
 
 const DISCOUNT_CODES: Record<string, number> = {
   "KUMO10": 10,
@@ -175,6 +198,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [pointsConfig, setPointsConfig] = useState<PointsRule[]>(defaultPointsConfig);
   const [rewardItems, setRewardItems] = useState<RewardItem[]>(defaultRewards);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(defaultPaymentSettings);
   const [aboutContent, setAboutContent] = useState<AboutContent>(defaultAboutContent);
   const [initialized, setInitialized] = useState(false);
 
@@ -199,6 +223,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(getFromStorage(STORAGE_KEYS.ORDERS, []));
     setPointsConfig(getFromStorage(STORAGE_KEYS.POINTS_CONFIG, defaultPointsConfig));
     setRewardItems(getFromStorage(STORAGE_KEYS.REWARDS, defaultRewards));
+    setPaymentSettings(getFromStorage(STORAGE_KEYS.PAYMENTS, defaultPaymentSettings));
     setAboutContent(getFromStorage(STORAGE_KEYS.ABOUT, defaultAboutContent));
     setInitialized(true);
   }, []);
@@ -340,6 +365,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDiscountAmount(0);
   }, []);
 
+  const addOrder = useCallback((items: CartItem[], total: number): string => {
+    const orderId = 'ORD-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-4);
+    const newOrder: Order = {
+      id: orderId,
+      date: new Date().toISOString().split('T')[0],
+      status: 'Đang xử lý',
+      items,
+      total,
+      customerName: user?.name || 'Khách hàng',
+    };
+    setOrders(prev => [newOrder, ...prev]);
+    return orderId;
+  }, [user]);
+
   const toggleWishlist = useCallback((productId: string) => {
     setWishlist(prev => {
       if (prev.includes(productId)) {
@@ -426,6 +465,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showNotification('Đã cập nhật nội dung trang Giới thiệu', 'success');
   }, [showNotification]);
 
+  // ADMIN: Payment Settings
+  const updatePaymentSettings = useCallback((updates: Partial<PaymentSettings>) => {
+    setPaymentSettings(prev => {
+      const updated = { ...prev, ...updates };
+      setToStorage(STORAGE_KEYS.PAYMENTS, updated);
+      return updated;
+    });
+    showNotification('Đã cập nhật cấu hình thanh toán', 'success');
+  }, [showNotification]);
+
   // ADMIN: Rewards CRUD
   const addRewardItem = useCallback((item: Omit<RewardItem, 'id'>) => {
     const newItem: RewardItem = { ...item, id: generateId() };
@@ -468,10 +517,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       notification,
       pointsConfig,
       rewardItems,
+      paymentSettings,
       addToCart,
       removeFromCart,
       updateQuantity,
       clearCart,
+      addOrder,
       toggleWishlist,
       applyDiscount,
       cartTotal,
@@ -488,6 +539,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteRewardItem,
       aboutContent,
       updateAboutContent,
+      updatePaymentSettings,
     }}>
       {children}
     </AppContext.Provider>

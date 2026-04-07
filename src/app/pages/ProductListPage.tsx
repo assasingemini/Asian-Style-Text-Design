@@ -46,7 +46,10 @@ export default function ProductListPage() {
     }
 
     if (selectedCategory !== 'all') {
-      result = result.filter(p => p.category.toLowerCase() === selectedCategory);
+      const selectedCatObj = categories.find(c => c.id === selectedCategory);
+      if (selectedCatObj) {
+        result = result.filter(p => p.category === selectedCatObj.name);
+      }
     }
 
     const priceRange = priceRanges[selectedPriceRange];

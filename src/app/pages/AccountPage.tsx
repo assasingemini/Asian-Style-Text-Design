@@ -6,14 +6,13 @@ import { useApp } from '../context/AppContext';
 import { products, formatPrice } from '../data/products';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
-type Tab = 'profile' | 'orders' | 'wishlist' | 'rewards' | 'settings';
+type Tab = 'profile' | 'orders' | 'wishlist' | 'rewards';
 
 const tabs: { key: Tab; label: string; icon: typeof User }[] = [
   { key: 'profile', label: 'Hồ sơ', icon: User },
   { key: 'orders', label: 'Đơn hàng', icon: Package },
   { key: 'wishlist', label: 'Yêu thích', icon: Heart },
   { key: 'rewards', label: 'Ưu đãi', icon: Award },
-  { key: 'settings', label: 'Cài đặt', icon: Settings },
 ];
 
 const statusStyles: Record<string, string> = {
@@ -254,37 +253,6 @@ export default function AccountPage() {
               </motion.div>
             )}
 
-            {/* SETTINGS */}
-            {activeTab === 'settings' && (
-              <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h2 className="font-['Cormorant_Garamond'] text-3xl mb-8">Cài đặt tài khoản</h2>
-                <div className="max-w-lg space-y-6">
-                  {[
-                    { label: 'Thông báo qua Email', desc: 'Nhận cập nhật đơn hàng và khuyến mãi', checked: true },
-                    { label: 'Thông báo qua SMS', desc: 'Cập nhật giao hàng qua SMS', checked: false },
-                    { label: 'Thông báo Giảm giá Sốc', desc: 'Nhận thông báo trước khi bắt đầu giảm giá', checked: true },
-                    { label: 'Bản tin tạp chí', desc: 'Nội dung tạp chí được tuyển chọn hàng tháng', checked: true },
-                  ].map(setting => (
-                    <div key={setting.label} className="flex items-center justify-between py-4 border-b border-black/10">
-                      <div>
-                        <p className="text-sm tracking-wide">{setting.label}</p>
-                        <p className="text-xs text-black/40 tracking-wide mt-0.5">{setting.desc}</p>
-                      </div>
-                      <button className={`w-12 h-6 rounded-full transition-all duration-300 relative ${setting.checked ? 'bg-black' : 'bg-black/20'}`}>
-                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${setting.checked ? 'right-1' : 'left-1'}`} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-10 pt-8 border-t border-black/10">
-                  <h3 className="font-['Cormorant_Garamond'] text-xl mb-4 text-red-600">Vùng nguy hiểm</h3>
-                  <button className="text-xs tracking-[0.2em] uppercase text-red-500 border border-red-200 px-6 py-3 hover:bg-red-50 transition-colors">
-                    Xóa tài khoản
-                  </button>
-                </div>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </div>
