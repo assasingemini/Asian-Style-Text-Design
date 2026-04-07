@@ -216,8 +216,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [rewardItems, setRewardItems] = useState<RewardItem[]>(defaultRewards);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(defaultPaymentSettings);
   const [aboutContent, setAboutContent] = useState<AboutContent>(defaultAboutContent);
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
-  const [blogPosts, setBlogPosts] = useState<typeof defaultBlogPosts>(defaultBlogPosts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   // Initialize from localStorage and Server Session
@@ -272,12 +272,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getSettingAction('paymentSettings', defaultPaymentSettings),
       getSettingAction('aboutContent', defaultAboutContent)
     ]).then(([dbProducts, dbBlogs, pointsCfg, rewards, payments, about]) => {
-      if (dbProducts && dbProducts.length > 0) setProducts(dbProducts as any);
-      else setProducts(defaultProducts);
-
-      if (dbBlogs && dbBlogs.length > 0) setBlogPosts(dbBlogs as any);
-      else setBlogPosts(defaultBlogPosts);
-
+      setProducts((dbProducts as any) || []);
+      setBlogPosts((dbBlogs as any) || []);
       setPointsConfig(pointsCfg);
       setRewardItems(rewards);
       setPaymentSettings(payments);
