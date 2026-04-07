@@ -838,6 +838,21 @@ export default function AdminPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {/* User Delete Confirmation */}
+              <AnimatePresence>
+                {deletingUser && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setDeletingUser(null)}>
+                    <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+                      <h3 className="font-['Cormorant_Garamond'] text-xl mb-2 text-red-600">Xác nhận xóa người dùng</h3>
+                      <p className="text-sm text-black/50 mb-6">Bạn có chắc muốn xóa <strong>{adminUsers.find(u => u.id === deletingUser)?.name}</strong>? Dữ liệu người dùng này sẽ bị xóa vĩnh viễn.</p>
+                      <div className="flex gap-3 justify-end">
+                        <button onClick={() => setDeletingUser(null)} className="px-5 py-2.5 border border-black/20 text-xs tracking-[0.2em] uppercase hover:border-black transition-colors">Hủy</button>
+                        <button onClick={executeDeleteUser} className="px-5 py-2.5 bg-red-600 text-white text-xs tracking-[0.2em] uppercase hover:bg-red-700 transition-colors">Xóa vĩnh viễn</button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
