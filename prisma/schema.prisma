@@ -52,6 +52,7 @@ model User {
   avatar      String?
   points      Int      @default(0)
   tier        String   @default("Bronze")
+  role        String   @default("customer")
   joinDate    DateTime @default(now())
   totalOrders Int      @default(0)
   orders      Order[]

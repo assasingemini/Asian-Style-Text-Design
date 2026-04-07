@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { Heart, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Product, formatPrice } from '../../data/products';
@@ -37,7 +37,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setShowSizes(false); }}
     >
-      <Link to={`/shop/${product.id}`} className="block">
+      <Link href={`/shop/${product.id}`} className="block">
         {/* Image */}
         <div className="relative overflow-hidden bg-[#F5F5F3] aspect-[3/4]">
           <ImageWithFallback

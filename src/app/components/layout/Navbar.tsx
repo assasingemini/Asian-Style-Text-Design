@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingBag, Heart, User, Menu, X, Search, Zap, LogIn, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,12 +19,12 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
+  const navigate = useRouter();
 
-  const isHome = location.pathname === '/';
-  const isAdminPage = location.pathname.startsWith('/admin');
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isHome = pathname === '/';
+  const isAdminPage = pathname?.startsWith('/admin');
+  const isAuthPage = pathname === '/login' || pathname === '/register';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -34,12 +35,12 @@ export function Navbar() {
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
-  }, [location]);
+  }, [pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/shop?q=${encodeURIComponent(searchQuery)}`);
+      navigate.push(`/shop?q=${encodeURIComponent(searchQuery)}`);
       setSearchQuery('');
       setSearchOpen(false);
     }
@@ -59,7 +60,7 @@ export function Navbar() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${navBg}`}>
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className={`font-['Cormorant_Garamond'] text-2xl tracking-[0.3em] ${logoColor} transition-colors duration-500`}>
+          <Link href="/" className={`font-['Cormorant_Garamond'] text-2xl tracking-[0.3em] ${logoColor} transition-colors duration-500`}>
             KUMO
           </Link>
 
@@ -67,8 +68,8 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-10">
             {navLinks.map(link => (
               <Link
-                key={link.href}
-                to={link.href}
+                  key={link.href}
+                  href={link.href}
                 className={`text-xs tracking-[0.2em] uppercase transition-all duration-300 hover:opacity-60 ${textColor} relative group ${link.label === 'Flash Sale' ? 'flex items-center gap-1' : ''}`}
               >
                 {link.label === 'Flash Sale' && <Zap size={10} className="fill-current" />}
@@ -91,13 +92,13 @@ export function Navbar() {
               <>
                 {/* Admin link */}
                 {isAdmin && (
-                  <Link to="/admin" className={`${textColor} transition-all duration-300 hover:opacity-60`} title="Quản trị">
+                  <Link href="/admin" className={`${textColor} transition-all duration-300 hover:opacity-60`} title="Quản trị">
                     <Settings size={18} />
                   </Link>
                 )}
 
                 {/* Wishlist */}
-                <Link to="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
+                <Link href="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
                   <Heart size={18} />
                   {wishlist.length > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
@@ -107,7 +108,7 @@ export function Navbar() {
                 </Link>
 
                 {/* User */}
-                <Link to="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
+                <Link href="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
                   {user?.avatar ? (
                     <div className="w-6 h-6 rounded-full overflow-hidden border border-current/20">
                       <img src={user.avatar} alt="" className="w-full h-full object-cover" />
@@ -118,7 +119,7 @@ export function Navbar() {
                 </Link>
 
                 {/* Cart */}
-                <Link to="/cart" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
+                <Link href="/cart" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
                   <ShoppingBag size={18} />
                   {cartCount > 0 && (
                     <motion.span
@@ -135,14 +136,14 @@ export function Navbar() {
               <>
                 {/* Login & Register buttons */}
                 <Link
-                  to="/login"
+                  href="/login"
                   className={`hidden md:flex items-center gap-1.5 text-xs tracking-[0.15em] uppercase ${textColor} transition-all duration-300 hover:opacity-60`}
                 >
                   <LogIn size={14} />
                   Đăng nhập
                 </Link>
                 <Link
-                  to="/register"
+                  href="/register"
                   className={`hidden md:flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase px-4 py-2 transition-all duration-300 ${
                     scrolled || !isHome
                       ? 'bg-black text-white hover:bg-black/90'
@@ -153,7 +154,7 @@ export function Navbar() {
                 </Link>
                 {/* Mobile: single login icon */}
                 <Link
-                  to="/login"
+                  href="/login"
                   className={`md:hidden ${textColor} transition-all duration-300 hover:opacity-60`}
                 >
                   <LogIn size={18} />
@@ -213,7 +214,7 @@ export function Navbar() {
               {navLinks.map(link => (
                 <Link
                   key={link.href}
-                  to={link.href}
+                  href={link.href}
                   className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity"
                 >
                   {link.label}
@@ -221,24 +222,24 @@ export function Navbar() {
               ))}
               {isLoggedIn ? (
                 <>
-                  <Link to="/account" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                  <Link href="/account" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
                     Tài khoản
                   </Link>
-                  <Link to="/cart" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                  <Link href="/cart" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
                     Giỏ hàng ({cartCount})
                   </Link>
                   {isAdmin && (
-                    <Link to="/admin" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                    <Link href="/admin" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
                       Quản trị
                     </Link>
                   )}
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                  <Link href="/login" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
                     Đăng nhập
                   </Link>
-                  <Link to="/register" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
+                  <Link href="/register" className="font-['Cormorant_Garamond'] text-3xl tracking-wider hover:opacity-60 transition-opacity">
                     Đăng ký
                   </Link>
                 </>

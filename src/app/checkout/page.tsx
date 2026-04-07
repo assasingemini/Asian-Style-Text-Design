@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check, Wallet, Building, LogIn, HandCoins } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
@@ -17,7 +20,7 @@ const STEPS: { key: Step; label: string }[] = [
 
 
 export default function CheckoutPage() {
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const { cart, cartTotal, discountAmount, clearCart, user, redeemPoints, isLoggedIn, earnPoints, addOrder, paymentSettings } = useApp();
   const [step, setStep] = useState<Step>('shipping');
   const [usePoints, setUsePoints] = useState(false);
@@ -70,9 +73,9 @@ export default function CheckoutPage() {
     // Earn points based on admin-configured price thresholds per product
     earnPoints(finalTotal, cart);
     // Create real order
-    addOrder(cart, finalTotal);
+    await addOrder(cart, finalTotal);
     clearCart();
-    navigate('/checkout/confirm');
+    navigate.push('/checkout/confirm');
   };
 
   if (!isLoggedIn) {
@@ -82,7 +85,7 @@ export default function CheckoutPage() {
           <LogIn size={48} className="mx-auto mb-6 text-black/20" strokeWidth={1} />
           <p className="font-['Cormorant_Garamond'] text-4xl mb-4">Vui lòng đăng nhập</p>
           <p className="text-black/40 text-sm tracking-wide mb-10">Bạn cần đăng nhập để thanh toán.</p>
-          <Link to="/login" className="text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
+          <Link href="/login" className="text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
             Đăng nhập
           </Link>
         </div>
@@ -95,7 +98,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen pt-16 flex items-center justify-center">
         <div className="text-center">
           <p className="font-['Cormorant_Garamond'] text-4xl mb-4">Giỏ hàng đang trống</p>
-          <Link to="/shop" className="text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
+          <Link href="/shop" className="text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
             Mua ngay
           </Link>
         </div>
@@ -108,7 +111,7 @@ export default function CheckoutPage() {
       <div className="max-w-[1200px] mx-auto px-6 md:px-12 py-10">
         {/* Header */}
         <div className="text-center mb-12">
-          <Link to="/cart" className="inline-flex items-center gap-2 text-xs text-black/40 hover:text-black transition-colors mb-6 tracking-wider">
+          <Link href="/cart" className="inline-flex items-center gap-2 text-xs text-black/40 hover:text-black transition-colors mb-6 tracking-wider">
             <ArrowLeft size={14} /> Quay lại giỏ hàng
           </Link>
           <div className="font-['Cormorant_Garamond'] text-3xl mb-8">Thanh toán</div>

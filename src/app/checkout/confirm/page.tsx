@@ -1,4 +1,6 @@
-import { Link } from 'react-router';
+'use client';
+
+import Link from 'next/link';
 import { CheckCircle, Package, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -47,14 +49,12 @@ export default function OrderConfirmPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/account"
+            <Link href="/account"
               className="flex items-center justify-center gap-2 border border-black text-xs tracking-[0.25em] uppercase px-8 py-4 hover:bg-black hover:text-white transition-all duration-300"
             >
               Xem đơn hàng
             </Link>
-            <Link
-              to="/shop"
+            <Link href="/shop"
               className="flex items-center justify-center gap-2 bg-black text-white text-xs tracking-[0.25em] uppercase px-8 py-4 hover:bg-black/90 transition-all duration-300 group"
             >
               Tiếp tục mua sắm <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import GlobalProviders from './GlobalProviders';
 
 export const metadata: Metadata = {
   title: 'KUMO – Asian Style Text Design',
@@ -69,7 +70,9 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {children}
+        <GlobalProviders>
+          {children}
+        </GlobalProviders>
       </body>
     </html>
   );

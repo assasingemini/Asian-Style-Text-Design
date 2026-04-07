@@ -1,8 +1,11 @@
-import { useParams, Link } from 'react-router';
+'use client';
+
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { ArrowLeft, Clock, User, Tag, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
-import { blogPosts } from '../data/blog';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { blogPosts } from '../../data/blog';
+import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 
 export default function BlogDetailPage() {
   const { id } = useParams();
@@ -14,7 +17,7 @@ export default function BlogDetailPage() {
       <div className="min-h-screen pt-16 flex items-center justify-center">
         <div className="text-center">
           <p className="font-['Cormorant_Garamond'] text-4xl text-black/20 mb-4">Không tìm thấy bài viết</p>
-          <Link to="/blog" className="text-xs tracking-[0.2em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
+          <Link href="/blog" className="text-xs tracking-[0.2em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
             Quay lại Tạp chí
           </Link>
         </div>
@@ -42,7 +45,7 @@ export default function BlogDetailPage() {
           transition={{ duration: 0.6 }}
           className="py-12"
         >
-          <Link to="/blog" className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-black/40 hover:text-black transition-colors mb-8">
+          <Link href="/blog" className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-black/40 hover:text-black transition-colors mb-8">
             <ArrowLeft size={14} /> Tạp chí
           </Link>
 
@@ -105,7 +108,7 @@ export default function BlogDetailPage() {
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-16">
           <div className="flex items-end justify-between mb-10">
             <h2 className="font-['Cormorant_Garamond'] text-3xl">Xem thêm từ Tạp chí</h2>
-            <Link to="/blog" className="hidden md:flex items-center gap-2 text-xs tracking-[0.2em] uppercase hover:gap-4 transition-all">
+            <Link href="/blog" className="hidden md:flex items-center gap-2 text-xs tracking-[0.2em] uppercase hover:gap-4 transition-all">
               Tất cả bài viết <ArrowRight size={14} />
             </Link>
           </div>
@@ -118,7 +121,7 @@ export default function BlogDetailPage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <Link to={`/blog/${relPost.id}`} className="group block">
+                <Link href={`/blog/${relPost.id}`} className="group block">
                   <div className="overflow-hidden aspect-[4/3] mb-4">
                     <ImageWithFallback
                       src={relPost.image}

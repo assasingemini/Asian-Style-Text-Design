@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText, Zap, Award, Coins,
   Plus, Pencil, Trash2, Search, DollarSign, Eye, X, Menu, Save, ToggleLeft, ToggleRight, Shield, BookOpen, ImagePlus, CreditCard
@@ -74,7 +77,7 @@ const inputCls = "w-full border border-black/20 px-4 py-3 text-sm outline-none f
 const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb-2";
 
 export default function AdminPage() {
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const { isLoggedIn, isAdmin, orders, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -109,7 +112,7 @@ export default function AdminPage() {
   const [localOrders, setLocalOrders] = useState(mockOrders);
 
   // Users state - read from localStorage
-  const [adminUsers] = useState(() => {
+  const [adminUsers] = useState<typeof mockUsers>(() => {
     if (typeof window === 'undefined') return mockUsers;
     try {
       const stored = localStorage.getItem('kumo_users');
@@ -130,7 +133,7 @@ export default function AdminPage() {
   // Blog state - persist to localStorage
   const [showBlogModal, setShowBlogModal] = useState(false);
   const [editingBlog, setEditingBlog] = useState<string | null>(null);
-  const [localBlogPosts, setLocalBlogPosts] = useState(() => {
+  const [localBlogPosts, setLocalBlogPosts] = useState<typeof blogPosts>(() => {
     if (typeof window === 'undefined') return blogPosts;
     try { const s = localStorage.getItem('kumo_admin_blog'); return s ? JSON.parse(s) : blogPosts; } catch { return blogPosts; }
   });
@@ -144,7 +147,7 @@ export default function AdminPage() {
   ];
   const [showFlashModal, setShowFlashModal] = useState(false);
   const [editingFlash, setEditingFlash] = useState<string | null>(null);
-  const [flashCampaigns, setFlashCampaigns] = useState(() => {
+  const [flashCampaigns, setFlashCampaigns] = useState<typeof defaultFlash>(() => {
     if (typeof window === 'undefined') return defaultFlash;
     try { const s = localStorage.getItem('kumo_admin_flash'); return s ? JSON.parse(s) : defaultFlash; } catch { return defaultFlash; }
   });
@@ -152,7 +155,7 @@ export default function AdminPage() {
 
   // Product state - persist to localStorage
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
-  const [localProducts, setLocalProducts] = useState(() => {
+  const [localProducts, setLocalProducts] = useState<Product[]>(() => {
     if (typeof window === 'undefined') return products;
     try { const s = localStorage.getItem('kumo_admin_products'); return s ? JSON.parse(s) : products; } catch { return products; }
   });
@@ -194,7 +197,7 @@ export default function AdminPage() {
           <Shield size={48} className="mx-auto mb-6 text-black/20" strokeWidth={1} />
           <h1 className="font-['Cormorant_Garamond'] text-4xl mb-4">Truy cập bị từ chối</h1>
           <p className="text-black/50 text-sm tracking-wide mb-10">Bạn cần đăng nhập với tài khoản admin để truy cập trang này.</p>
-          <button onClick={() => navigate('/login')} className="bg-black text-white text-xs tracking-[0.25em] uppercase py-4 px-10 hover:bg-black/90">
+          <button onClick={() => navigate.push('/login')} className="bg-black text-white text-xs tracking-[0.25em] uppercase py-4 px-10 hover:bg-black/90">
             Đăng nhập
           </button>
         </div>
@@ -397,7 +400,7 @@ export default function AdminPage() {
             className="bg-black text-white flex-shrink-0 h-screen sticky top-0 overflow-hidden"
           >
             <div className="p-6 border-b border-white/10">
-              <Link to="/" className="font-['Cormorant_Garamond'] text-xl tracking-[0.3em] text-white">KUMO</Link>
+              <Link href="/" className="font-['Cormorant_Garamond'] text-xl tracking-[0.3em] text-white">KUMO</Link>
               <p className="text-white/30 text-[9px] tracking-[0.25em] uppercase mt-1">Trang quản trị</p>
             </div>
             <nav className="p-4 space-y-1">
@@ -418,7 +421,7 @@ export default function AdminPage() {
               })}
             </nav>
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-white/10">
-              <Link to="/" className="flex items-center gap-2 text-white/40 text-xs tracking-wider hover:text-white transition-colors">
+              <Link href="/" className="flex items-center gap-2 text-white/40 text-xs tracking-wider hover:text-white transition-colors">
                 <Eye size={12} /> Xem cửa hàng
               </Link>
             </div>

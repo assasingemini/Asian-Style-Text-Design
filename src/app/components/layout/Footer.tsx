@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { Instagram, Twitter, Youtube, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
@@ -62,7 +62,7 @@ export function Footer() {
           <ul className="flex flex-col gap-3">
             {['Hàng mới về', 'Áo khoác', 'Áo', 'Quần & Váy', 'Đầm', 'Phụ kiện'].map(item => (
               <li key={item}>
-                <Link to="/shop" className="text-white/50 text-sm hover:text-white transition-colors tracking-wide">
+                <Link href="/shop" className="text-white/50 text-sm hover:text-white transition-colors tracking-wide">
                   {item}
                 </Link>
               </li>
@@ -82,7 +82,7 @@ export function Footer() {
               { label: 'Câu hỏi thường gặp', path: '/' }
             ].map(item => (
               <li key={item.label}>
-                <Link to={item.path} className="text-white/50 text-sm hover:text-white transition-colors tracking-wide">
+                <Link href={item.path} className="text-white/50 text-sm hover:text-white transition-colors tracking-wide">
                   {item.label}
                 </Link>
               </li>
@@ -117,9 +117,9 @@ export function Footer() {
             © 2026 KUMO. Bảo lưu mọi quyền.
           </p>
           <div className="flex items-center gap-6">
-            <Link to="/" className="text-white/30 text-xs tracking-wider hover:text-white/60 transition-colors">Chính sách bảo mật</Link>
-            <Link to="/" className="text-white/30 text-xs tracking-wider hover:text-white/60 transition-colors">Điều khoản dịch vụ</Link>
-            <Link to="/admin" className="text-white/20 text-xs tracking-wider hover:text-white/40 transition-colors">Quản trị</Link>
+            <Link href="/" className="text-white/30 text-xs tracking-wider hover:text-white/60 transition-colors">Chính sách bảo mật</Link>
+            <Link href="/" className="text-white/30 text-xs tracking-wider hover:text-white/60 transition-colors">Điều khoản dịch vụ</Link>
+            <Link href="/admin" className="text-white/20 text-xs tracking-wider hover:text-white/40 transition-colors">Quản trị</Link>
           </div>
         </div>
       </div>

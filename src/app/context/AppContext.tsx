@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product } from '../data/products';
 import { AboutContent, defaultAboutContent } from '../data/aboutDefaults';
+import { login as loginAction, registerUser as registerAction, getSession as getSessionAction, logout as logoutAction } from '@/actions/authActions';
+import { createOrder as createOrderAction } from '@/actions/orderActions';
 
 export interface CartItem {
   product: Product;
@@ -85,16 +87,16 @@ interface AppContextType {
   cartTotal: number;
   cartCount: number;
   showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => boolean;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   redeemPoints: (points: number) => boolean;
   earnPoints: (orderTotal: number, cartItems?: CartItem[]) => number;
   updatePointsConfig: (config: PointsRule[]) => void;
   addRewardItem: (item: Omit<RewardItem, 'id'>) => void;
   updateRewardItem: (id: string, item: Partial<RewardItem>) => void;
   deleteRewardItem: (id: string) => void;
-  addOrder: (items: CartItem[], total: number) => string;
+  addOrder: (items: CartItem[], total: number) => Promise<string>;
 }
 
 const STORAGE_KEYS = {
@@ -202,20 +204,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [aboutContent, setAboutContent] = useState<AboutContent>(defaultAboutContent);
   const [initialized, setInitialized] = useState(false);
 
-  // Initialize from localStorage
+  // Initialize from localStorage and Server Session
   useEffect(() => {
-    // Initialize default admin in users store
-    const storedUsers = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    if (!storedUsers.find(u => u.email === 'admin@kumo.vn')) {
-      setToStorage(STORAGE_KEYS.USERS, [...storedUsers, defaultAdmin]);
-    }
-
-    // Load current user session
-    const currentUser = getFromStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (currentUser) {
-      setUser(currentUser);
-      setIsLoggedIn(true);
-    }
+    // Initial fetch from session
+    getSessionAction().then(session => {
+       if (session) {
+         setUser({ 
+           ...defaultAdmin, 
+           id: session.id as string, 
+           name: session.name as string, 
+           email: session.email as string, 
+           role: session.role as any 
+         });
+         setIsLoggedIn(true);
+       }
+    });
 
     // Load other state
     setCart(getFromStorage(STORAGE_KEYS.CART, []));
@@ -260,61 +263,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // AUTH
-  const login = useCallback((email: string, password: string): boolean => {
-    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (found) {
-      setUser(found);
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
+    const result = await loginAction(formData);
+    
+    if (result.success && result.user) {
+      setUser({
+        ...defaultAdmin,
+        id: result.user.id as string,
+        name: result.user.name as string,
+        email: result.user.email as string,
+        role: result.user.role as any
+      });
       setIsLoggedIn(true);
-      setToStorage(STORAGE_KEYS.CURRENT_USER, found);
-      showNotification(`Chào mừng trở lại, ${found.name}!`, 'success');
+      showNotification(`Chào mừng trở lại!`, 'success');
       return true;
     }
+    showNotification(result.error || 'Đăng nhập thất bại', 'error');
     return false;
   }, [showNotification]);
 
-  const register = useCallback((name: string, email: string, password: string): boolean => {
-    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return false; // email already exists
+  const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("password", password);
+    const result = await registerAction(formData);
+
+    if (result.success && result.user) {
+      setUser({
+        ...defaultAdmin,
+        id: result.user.id as string,
+        name: result.user.name as string,
+        email: result.user.email as string,
+        role: result.user.role as any
+      });
+      setIsLoggedIn(true);
+      showNotification(`Chào mừng ${name} đến với KUMO!`, 'success');
+      return true;
     }
-
-    const newUser: User = {
-      id: generateId(),
-      name,
-      email,
-      avatar: '',
-      points: 0,
-      joinDate: new Date().toISOString().split('T')[0],
-      totalOrders: 0,
-      role: email.toLowerCase() === 'admin@kumo.vn' ? 'admin' : 'customer',
-      password,
-    };
-
-    const updatedUsers = [...users, newUser];
-    setToStorage(STORAGE_KEYS.USERS, updatedUsers);
-    setUser(newUser);
-    setIsLoggedIn(true);
-    setToStorage(STORAGE_KEYS.CURRENT_USER, newUser);
-    showNotification(`Chào mừng ${name} đến với KUMO!`, 'success');
-    return true;
+    showNotification(result.error || 'Đăng ký thất bại', 'error');
+    return false;
   }, [showNotification]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await logoutAction();
     setUser(null);
     setIsLoggedIn(false);
-    setToStorage(STORAGE_KEYS.CURRENT_USER, null);
     showNotification('Đã đăng xuất thành công', 'info');
   }, [showNotification]);
 
-  // Update user in both state and storage
+  // Use partial persist since real storage is in DB now. We keep user local state updated.
   const persistUser = useCallback((updatedUser: User) => {
     setUser(updatedUser);
-    setToStorage(STORAGE_KEYS.CURRENT_USER, updatedUser);
-    // Also update in users store
-    const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
-    setToStorage(STORAGE_KEYS.USERS, updatedUsers);
   }, []);
 
   // CART
@@ -365,19 +368,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDiscountAmount(0);
   }, []);
 
-  const addOrder = useCallback((items: CartItem[], total: number): string => {
-    const orderId = 'ORD-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-4);
-    const newOrder: Order = {
-      id: orderId,
-      date: new Date().toISOString().split('T')[0],
-      status: 'Đang xử lý',
-      items,
-      total,
-      customerName: user?.name || 'Khách hàng',
-    };
-    setOrders(prev => [newOrder, ...prev]);
-    return orderId;
-  }, [user]);
+  const addOrder = useCallback(async (items: CartItem[], total: number): Promise<string> => {
+    const simplifiedItems = items.map(item => ({
+      productId: item.product.id,
+      size: item.size,
+      color: item.color,
+      quantity: item.quantity,
+      price: item.product.isFlashSale && item.product.flashSalePrice ? item.product.flashSalePrice : item.product.price
+    }));
+
+    const result = await createOrderAction({ items: simplifiedItems, total, customerName: user?.name });
+    
+    if (result.success && result.orderId) {
+       showNotification('Tạo đơn hàng thành công', 'success');
+       return result.orderId;
+    }
+    
+    showNotification(result.error || 'Lỗi tạo đơn', 'error');
+    return "";
+  }, [user, showNotification]);
 
   const toggleWishlist = useCallback((productId: string) => {
     setWishlist(prev => {

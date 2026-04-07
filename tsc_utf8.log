@@ -1,0 +1,43 @@
+﻿src/actions/authActions.ts(5,36): error TS2307: Cannot find module 'jose' or its corresponding type declarations.
+src/app/admin/page.tsx(200,34): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/admin/page.tsx(208,49): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/admin/page.tsx(224,24): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(224,44): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/admin/page.tsx(252,24): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(252,41): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/admin/page.tsx(275,24): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(305,25): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(305,42): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/admin/page.tsx(308,25): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(313,56): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(313,76): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/admin/page.tsx(328,25): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(328,42): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/admin/page.tsx(330,25): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(336,23): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/app/admin/page.tsx(336,40): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/admin/page.tsx(541,50): error TS7006: Parameter 'product' implicitly has an 'any' type.
+src/app/admin/page.tsx(593,128): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/admin/page.tsx(695,44): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/admin/page.tsx(752,37): error TS7006: Parameter 'post' implicitly has an 'any' type.
+src/app/admin/page.tsx(807,37): error TS7006: Parameter 'campaign' implicitly has an 'any' type.
+src/app/cart/page.tsx(222,32): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/checkout/page.tsx(78,5): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/login/page.tsx(20,5): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/login/page.tsx(37,9): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/register/page.tsx(19,5): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/register/page.tsx(51,9): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/shop/[id]/page.tsx(46,24): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/shop/[id]/page.tsx(53,24): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/shop/[id]/page.tsx(56,18): error TS2349: This expression is not callable.
+  Type 'AppRouterInstance' has no call signatures.
+src/app/shop/page.tsx(22,26): error TS2552: Cannot find name 'useSearchParams'. Did you mean 'searchParams'?

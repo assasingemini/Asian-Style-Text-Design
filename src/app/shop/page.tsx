@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+'use client';
+
+import { useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { products, categories } from '../data/products';
@@ -16,8 +18,8 @@ const priceRanges = [
 
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
-export default function ProductListPage() {
-  const [searchParams] = useSearchParams();
+function ProductList() {
+  const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
 
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -279,5 +281,13 @@ export default function ProductListPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProductListPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white pt-16 flex items-center justify-center font-['Cormorant_Garamond'] text-2xl text-black/50">Đang tải...</div>}>
+      <ProductList />
+    </Suspense>
   );
 }

@@ -1,15 +1,18 @@
+'use client';
+
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
 import { Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, ArrowRight, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { products, reviews, formatPrice } from '../data/products';
-import { useApp } from '../context/AppContext';
-import { ProductCard } from '../components/product/ProductCard';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { products, reviews, formatPrice } from '../../data/products';
+import { useApp } from '../../context/AppContext';
+import { ProductCard } from '../../components/product/ProductCard';
+import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const { addToCart, toggleWishlist, wishlist, isLoggedIn } = useApp();
 
   const product = products.find(p => p.id === id);
@@ -28,7 +31,7 @@ export default function ProductDetailPage() {
       <div className="min-h-screen flex items-center justify-center pt-16">
         <div className="text-center">
           <p className="font-['Cormorant_Garamond'] text-5xl text-black/20 mb-4">Không tìm thấy sản phẩm</p>
-          <Link to="/shop" className="text-xs tracking-[0.2em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
+          <Link href="/shop" className="text-xs tracking-[0.2em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
             Quay lại cửa hàng
           </Link>
         </div>
@@ -40,17 +43,17 @@ export default function ProductDetailPage() {
   const displayPrice = product.isFlashSale && product.flashSalePrice ? product.flashSalePrice : product.price;
 
   const handleAddToCart = () => {
-    if (!isLoggedIn) { navigate('/login'); return; }
+    if (!isLoggedIn) { navigate.push('/login'); return; }
     if (!selectedSize) { setSizeError(true); return; }
     const success = addToCart(product, selectedSize, selectedColor || product.colors[0], quantity);
     if (success) setSizeError(false);
   };
 
   const handleBuyNow = () => {
-    if (!isLoggedIn) { navigate('/login'); return; }
+    if (!isLoggedIn) { navigate.push('/login'); return; }
     if (!selectedSize) { setSizeError(true); return; }
     const success = addToCart(product, selectedSize, selectedColor || product.colors[0], quantity);
-    if (success) navigate('/cart');
+    if (success) navigate.push('/cart');
   };
 
   const getColorTranslation = (color: string) => {
@@ -77,9 +80,9 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white pt-16">
       {/* Breadcrumb */}
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-5 flex items-center gap-2 text-xs tracking-wider text-black/40">
-        <Link to="/" className="hover:text-black transition-colors">Trang chủ</Link>
+        <Link href="/" className="hover:text-black transition-colors">Trang chủ</Link>
         <span>/</span>
-        <Link to="/shop" className="hover:text-black transition-colors">Cửa hàng</Link>
+        <Link href="/shop" className="hover:text-black transition-colors">Cửa hàng</Link>
         <span>/</span>
         <span className="text-black">{product.name}</span>
       </div>
@@ -406,7 +409,7 @@ export default function ProductDetailPage() {
                 <p className="text-xs tracking-[0.3em] uppercase text-black/40 mb-2">Có thể bạn cũng thích</p>
                 <h2 className="font-['Cormorant_Garamond'] text-3xl md:text-4xl">Sản phẩm tương tự</h2>
               </div>
-              <Link to="/shop" className="hidden md:flex items-center gap-2 text-xs tracking-[0.2em] uppercase hover:gap-4 transition-all">
+              <Link href="/shop" className="hidden md:flex items-center gap-2 text-xs tracking-[0.2em] uppercase hover:gap-4 transition-all">
                 Xem tất cả <ArrowRight size={14} />
               </Link>
             </div>

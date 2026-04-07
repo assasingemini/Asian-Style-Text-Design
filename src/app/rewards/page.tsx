@@ -1,7 +1,9 @@
+'use client';
+
 import { useState } from 'react';
 import { Award, Star, Gift, ArrowRight, Check, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { useApp }from '../context/AppContext';
 import { formatPrice } from '../data/products';
 
@@ -60,7 +62,7 @@ export default function RewardsPage() {
             {!isLoggedIn && (
               <div className="bg-white/5 border border-white/10 p-8 min-w-[280px] text-center">
                 <p className="text-white/50 text-sm tracking-wide mb-4">Đăng nhập để xem điểm và đổi ưu đãi</p>
-                <Link to="/login" className="inline-block bg-white text-black text-xs tracking-[0.2em] uppercase px-8 py-3 hover:bg-white/90 transition-colors">Đăng nhập</Link>
+                <Link href="/login" className="inline-block bg-white text-black text-xs tracking-[0.2em] uppercase px-8 py-3 hover:bg-white/90 transition-colors">Đăng nhập</Link>
               </div>
             )}
           </div>
@@ -149,7 +151,7 @@ export default function RewardsPage() {
               <div>
                 <h2 className="font-['Cormorant_Garamond'] text-3xl">Đổi điểm của bạn</h2>
                 {user && isLoggedIn && <p className="text-black/40 text-sm mt-1">Bạn đang có <span className="text-black">{user.points.toLocaleString()}</span> điểm</p>}
-                {!isLoggedIn && <p className="text-black/40 text-sm mt-1"><Link to="/login" className="text-black underline">Đăng nhập</Link> để đổi điểm</p>}
+                {!isLoggedIn && <p className="text-black/40 text-sm mt-1"><Link href="/login" className="text-black underline">Đăng nhập</Link> để đổi điểm</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -189,7 +191,7 @@ export default function RewardsPage() {
             {!isLoggedIn ? (
               <div className="py-20 text-center">
                 <p className="text-black/40 text-sm mb-4">Đăng nhập để xem lịch sử điểm</p>
-                <Link to="/login" className="inline-block bg-black text-white text-xs tracking-[0.2em] uppercase px-8 py-3">Đăng nhập</Link>
+                <Link href="/login" className="inline-block bg-black text-white text-xs tracking-[0.2em] uppercase px-8 py-3">Đăng nhập</Link>
               </div>
             ) : (
               <>
@@ -210,7 +212,7 @@ export default function RewardsPage() {
                   ))}
                 </div>
                 <div className="mt-12 text-center">
-                  <Link to="/shop" className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group">
+                  <Link href="/shop" className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group">
                     Mua sắm để tích thêm điểm <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>

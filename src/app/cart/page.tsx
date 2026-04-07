@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Minus, Plus, Trash2, ArrowRight, Tag, ShoppingBag, ArrowLeft, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
@@ -10,7 +13,7 @@ export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, cartTotal, discountCode, discountAmount, applyDiscount, isLoggedIn } = useApp();
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
-  const navigate = useNavigate();
+  const navigate = useRouter();
 
   const discountValue = discountAmount > 0 ? Math.round(cartTotal * discountAmount / 100) : 0;
   const shipping = cartTotal >= 500000 ? 0 : 30000;
@@ -30,14 +33,13 @@ export default function CartPage() {
           <LogIn size={48} className="mx-auto mb-6 text-black/20" strokeWidth={1} />
           <p className="font-['Cormorant_Garamond'] text-4xl mb-4">Vui lòng đăng nhập</p>
           <p className="text-black/40 text-sm tracking-wide mb-10">Bạn cần đăng nhập để xem giỏ hàng và mua sắm.</p>
-          <Link
-            to="/login"
+          <Link href="/login"
             className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group"
           >
             Đăng nhập <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
           </Link>
           <p className="mt-4 text-xs text-black/30 tracking-wide">
-            Chưa có tài khoản? <Link to="/register" className="text-black underline">Đăng ký ngay</Link>
+            Chưa có tài khoản? <Link href="/register" className="text-black underline">Đăng ký ngay</Link>
           </p>
         </div>
       </div>
@@ -51,8 +53,7 @@ export default function CartPage() {
           <ShoppingBag size={48} className="mx-auto mb-6 text-black/20" />
           <p className="font-['Cormorant_Garamond'] text-4xl mb-4">Giỏ hàng đang trống</p>
           <p className="text-black/40 text-sm tracking-wide mb-10">Hãy khám phá bộ sưu tập và tìm món đồ bạn yêu thích.</p>
-          <Link
-            to="/shop"
+          <Link href="/shop"
             className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group"
           >
             Mua ngay <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
@@ -66,7 +67,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-white pt-16">
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-10">
         <div className="mb-8">
-          <Link to="/shop" className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-black/40 hover:text-black transition-colors mb-6">
+          <Link href="/shop" className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-black/40 hover:text-black transition-colors mb-6">
             <ArrowLeft size={14} /> Tiếp tục mua sắm
           </Link>
           <h1 className="font-['Cormorant_Garamond'] text-4xl md:text-5xl">Giỏ hàng</h1>
@@ -100,7 +101,7 @@ export default function CartPage() {
                   >
                     {/* Product */}
                     <div className="flex gap-5 items-start">
-                      <Link to={`/shop/${item.product.id}`} className="shrink-0 w-24 h-28 overflow-hidden bg-[#F5F5F3]">
+                      <Link href={`/shop/${item.product.id}`} className="shrink-0 w-24 h-28 overflow-hidden bg-[#F5F5F3]">
                         <ImageWithFallback
                           src={item.product.images[0]}
                           alt={item.product.name}
@@ -109,7 +110,7 @@ export default function CartPage() {
                       </Link>
                       <div>
                         <p className="text-[10px] tracking-[0.2em] uppercase text-black/40 mb-1">{item.product.category}</p>
-                        <Link to={`/shop/${item.product.id}`} className="font-['Cormorant_Garamond'] text-xl hover:opacity-60 transition-opacity">
+                        <Link href={`/shop/${item.product.id}`} className="font-['Cormorant_Garamond'] text-xl hover:opacity-60 transition-opacity">
                           {item.product.name}
                         </Link>
                         <div className="flex gap-4 mt-2">
@@ -218,7 +219,7 @@ export default function CartPage() {
               </div>
 
               <button
-                onClick={() => navigate('/checkout')}
+                onClick={() => navigate.push('/checkout')}
                 className="w-full bg-black text-white text-xs tracking-[0.25em] uppercase py-4 hover:bg-black/90 transition-all duration-300 flex items-center justify-center gap-3 group"
               >
                 Tiến hành thanh toán <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />

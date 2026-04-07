@@ -1,11 +1,14 @@
+'use client';
+
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../context/AppContext';
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const { register, isLoggedIn } = useApp();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -13,7 +16,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   if (isLoggedIn) {
-    navigate('/account');
+    navigate.push('/account');
     return null;
   }
 
@@ -43,9 +46,9 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const success = register(form.name, form.email, form.password);
+      const success = await register(form.name, form.email, form.password);
       if (success) {
-        navigate('/');
+        navigate.push('/');
       } else {
         setError('Email đã được sử dụng');
       }
@@ -97,7 +100,7 @@ export default function RegisterPage() {
           transition={{ duration: 0.6 }}
           className="w-full max-w-md"
         >
-          <Link to="/" className="font-['Cormorant_Garamond'] text-3xl tracking-[0.3em] text-black mb-2 block">
+          <Link href="/" className="font-['Cormorant_Garamond'] text-3xl tracking-[0.3em] text-black mb-2 block">
             KUMO
           </Link>
           <p className="text-black/30 text-[10px] tracking-[0.3em] uppercase mb-12">Tạo tài khoản mới</p>
@@ -209,7 +212,7 @@ export default function RegisterPage() {
           <div className="mt-10 pt-8 border-t border-black/10">
             <p className="text-sm text-black/40 tracking-wide text-center">
               Đã có tài khoản?{' '}
-              <Link to="/login" className="text-black hover:opacity-60 transition-opacity underline underline-offset-4">
+              <Link href="/login" className="text-black hover:opacity-60 transition-opacity underline underline-offset-4">
                 Đăng nhập
               </Link>
             </p>

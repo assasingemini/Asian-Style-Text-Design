@@ -1,5 +1,7 @@
+'use client';
+
 import { useState } from 'react';
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { ArrowRight, Clock, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { blogPosts, blogCategories } from '../data/blog';
@@ -47,7 +49,7 @@ export default function BlogPage() {
             transition={{ duration: 0.6 }}
             className="mb-16"
           >
-            <Link to={`/blog/${featured.id}`} className="group grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <Link href={`/blog/${featured.id}`} className="group grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div className="overflow-hidden aspect-[4/3]">
                 <ImageWithFallback
                   src={featured.image}
@@ -90,7 +92,7 @@ export default function BlogPage() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <Link to={`/blog/${post.id}`} className="group block">
+                  <Link href={`/blog/${post.id}`} className="group block">
                     <div className="overflow-hidden aspect-[4/3] mb-5">
                       <ImageWithFallback
                         src={post.image}

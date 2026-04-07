@@ -1,7 +1,9 @@
+'use client';
+
 import { useState, useEffect, useMemo } from 'react';
 import { Zap, ArrowRight, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { products, formatPrice } from '../data/products';
 import { useApp } from '../context/AppContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
@@ -144,7 +146,7 @@ export default function FlashSalePage() {
                 transition={{ delay: i * 0.08 }}
                 className="group border border-black/10 hover:border-black/20 transition-all"
               >
-                <Link to={`/shop/${product.id}`} className="block relative overflow-hidden aspect-[4/3]">
+                <Link href={`/shop/${product.id}`} className="block relative overflow-hidden aspect-[4/3]">
                   <ImageWithFallback
                     src={product.images[0]}
                     alt={product.name}
@@ -161,7 +163,7 @@ export default function FlashSalePage() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="text-[9px] tracking-[0.2em] uppercase text-black/40 mb-1">{product.category}</p>
-                      <Link to={`/shop/${product.id}`}>
+                      <Link href={`/shop/${product.id}`}>
                         <h3 className="font-['Cormorant_Garamond'] text-xl hover:opacity-60 transition-opacity">{product.name}</h3>
                       </Link>
                     </div>

@@ -1,4 +1,6 @@
-import { Link } from 'react-router';
+'use client';
+
+import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 export default function NotFoundPage() {
@@ -15,10 +17,10 @@ export default function NotFoundPage() {
             Trang bạn đang tìm kiếm dường như đã đi lạc. Hãy để chúng tôi dẫn bạn trở lại.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/" className="inline-flex items-center justify-center gap-2 bg-black text-white text-xs tracking-[0.25em] uppercase px-8 py-4 hover:bg-black/90 transition-all group">
+            <Link href="/" className="inline-flex items-center justify-center gap-2 bg-black text-white text-xs tracking-[0.25em] uppercase px-8 py-4 hover:bg-black/90 transition-all group">
               Về Trang chủ <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link to="/shop" className="inline-flex items-center justify-center gap-2 border border-black text-xs tracking-[0.25em] uppercase px-8 py-4 hover:bg-black hover:text-white transition-all">
+            <Link href="/shop" className="inline-flex items-center justify-center gap-2 border border-black text-xs tracking-[0.25em] uppercase px-8 py-4 hover:bg-black hover:text-white transition-all">
               Khám phá Bộ sưu tập
             </Link>
           </div>

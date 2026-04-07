@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { User, Package, Heart, Award, Settings, LogOut, ArrowRight, Star, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
@@ -25,7 +28,7 @@ const statusStyles: Record<string, string> = {
 export default function AccountPage() {
   const { user, orders, wishlist, toggleWishlist, logout, isLoggedIn } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const wishlistProducts = products.filter(p => wishlist.includes(p.id));
 
   if (!isLoggedIn) {
@@ -36,14 +39,13 @@ export default function AccountPage() {
           <h1 className="font-['Cormorant_Garamond'] text-4xl mb-4">Đăng nhập</h1>
           <p className="text-black/50 text-sm tracking-wide mb-10">Đăng nhập để xem đơn hàng, danh sách yêu thích và điểm thưởng.</p>
 
-          <Link
-            to="/login"
+          <Link href="/login"
             className="w-full inline-block bg-black text-white text-xs tracking-[0.25em] uppercase py-4 hover:bg-black/90 transition-all mb-4"
           >
             Đăng nhập
           </Link>
           <p className="text-xs text-black/40 tracking-wide">
-            Chưa có tài khoản? <Link to="/register" className="text-black underline underline-offset-4">Đăng ký ngay</Link>
+            Chưa có tài khoản? <Link href="/register" className="text-black underline underline-offset-4">Đăng ký ngay</Link>
           </p>
         </div>
       </div>
@@ -198,7 +200,7 @@ export default function AccountPage() {
                   <div className="py-20 text-center">
                     <Heart size={48} strokeWidth={1} className="mx-auto mb-5 text-black/20" />
                     <p className="font-['Cormorant_Garamond'] text-2xl text-black/40 mb-6">Chưa có sản phẩm nào được lưu</p>
-                    <Link to="/shop" className="inline-flex items-center gap-2 text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
+                    <Link href="/shop" className="inline-flex items-center gap-2 text-xs tracking-[0.25em] uppercase border border-black px-8 py-3 hover:bg-black hover:text-white transition-all">
                       Khám phá bộ sưu tập <ArrowRight size={14} />
                     </Link>
                   </div>
@@ -206,7 +208,7 @@ export default function AccountPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                     {wishlistProducts.map(product => (
                       <div key={product.id} className="group">
-                        <Link to={`/shop/${product.id}`} className="block">
+                        <Link href={`/shop/${product.id}`} className="block">
                           <div className="relative overflow-hidden aspect-[3/4] bg-[#F5F5F3] mb-3">
                             <ImageWithFallback
                               src={product.images[0]}
@@ -247,7 +249,7 @@ export default function AccountPage() {
                     </div>
                   ))}
                 </div>
-                <Link to="/rewards" className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group">
+                <Link href="/rewards" className="inline-flex items-center gap-3 bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-black/90 transition-all group">
                   Xem toàn bộ trang ưu đãi <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                 </Link>
               </motion.div>

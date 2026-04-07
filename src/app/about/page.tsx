@@ -1,5 +1,7 @@
+'use client';
+
 import { useRef } from 'react';
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { ArrowRight, Leaf, Gem, Palette, Scissors, Users, ShoppingBag, Globe, Award } from 'lucide-react';
 import { motion, useInView, useScroll, useTransform } from 'motion/react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
@@ -435,14 +437,12 @@ export default function AboutPage() {
               {content.cta.title}
             </h2>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Link
-                to="/shop"
+              <Link href="/shop"
                 className="inline-flex items-center gap-3 bg-white text-black text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-white/90 transition-all duration-300 group"
               >
                 Mua ngay <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link
-                to="/blog"
+              <Link href="/blog"
                 className="inline-flex items-center gap-3 border border-white/40 text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:border-white hover:bg-white/10 transition-all duration-300"
               >
                 Đọc Tạp chí

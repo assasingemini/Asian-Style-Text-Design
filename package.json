@@ -44,6 +44,9 @@
     "@radix-ui/react-toggle-group": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.8",
     "@tailwindcss/postcss": "^4.1.12",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.3",
     "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",
     "cloudinary": "^2.9.0",
@@ -52,6 +55,8 @@
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
+    "jose": "^6.2.2",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "0.487.0",
     "motion": "12.23.24",
     "next": "^15.5.12",
@@ -80,6 +85,10 @@
     "@types/react-dom": "^18.3.0",
     "prisma": "^6.19.2",
     "tailwindcss": "^4.1.12",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
