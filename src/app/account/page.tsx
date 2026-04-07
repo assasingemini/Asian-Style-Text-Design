@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { User, Package, Heart, Award, Settings, LogOut, ArrowRight, Star, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../context/AppContext';
-import { products, formatPrice } from '../data/products';
+import { formatPrice } from '../data/products';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 type Tab = 'profile' | 'orders' | 'wishlist' | 'rewards';
@@ -26,7 +26,7 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function AccountPage() {
-  const { user, orders, wishlist, toggleWishlist, logout, isLoggedIn } = useApp();
+  const { user, orders, wishlist, toggleWishlist, logout, isLoggedIn, products } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const navigate = useRouter();
   const wishlistProducts = products.filter(p => wishlist.includes(p.id));

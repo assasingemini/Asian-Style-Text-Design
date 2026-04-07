@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Zap, ArrowRight, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { products, formatPrice } from '../data/products';
+import { formatPrice } from '../data/products';
 import { useApp } from '../context/AppContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
@@ -48,6 +48,8 @@ function TimeBlock({ value, label }: { value: number; label: string }) {
 }
 
 export default function FlashSalePage() {
+  const { addToCart, products } = useApp();
+
   // Memoize flash sales to prevent re-creation of Date objects
   const flashSales = useMemo(() => [
     {
@@ -64,11 +66,11 @@ export default function FlashSalePage() {
       badge: 'Đang diễn ra',
       products: products.filter((_, i) => i % 3 === 0),
     },
-  ], []);
+  ], [products]);
 
-  const [activeSale, setActiveSale] = useState(flashSales[0]);
+  const [activeSaleId, setActiveSaleId] = useState('fs1');
+  const activeSale = flashSales.find(s => s.id === activeSaleId) || flashSales[0];
   const countdown = useCountdown(activeSale.endDate);
-  const { addToCart } = useApp();
 
   return (
     <div className="min-h-screen bg-white pt-16">
@@ -113,7 +115,7 @@ export default function FlashSalePage() {
           {flashSales.map(sale => (
             <button
               key={sale.id}
-              onClick={() => setActiveSale(sale)}
+              onClick={() => setActiveSaleId(sale.id)}
               className={`flex items-center gap-3 px-8 py-5 text-xs tracking-[0.2em] uppercase border-b-2 whitespace-nowrap transition-all ${
                 activeSale.id === sale.id ? 'border-black text-black' : 'border-transparent text-black/40 hover:text-black'
               }`}

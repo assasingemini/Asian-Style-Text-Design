@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Clock, User, Tag, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
-import { blogPosts } from '../../data/blog';
+import { useApp } from '../../context/AppContext';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 
 export default function BlogDetailPage() {
+  const { blogPosts } = useApp();
   const { id } = useParams();
   const post = blogPosts.find(p => p.id === id);
   const related = blogPosts.filter(p => p.id !== id).slice(0, 3);

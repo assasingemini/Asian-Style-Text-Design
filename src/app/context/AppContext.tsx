@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Product } from '../data/products';
+import { Product, products as defaultProducts } from '../data/products';
 import { AboutContent, defaultAboutContent } from '../data/aboutDefaults';
+import { blogPosts as defaultBlogPosts } from '../data/blog';
 import { login as loginAction, registerUser as registerAction, getSession as getSessionAction, logout as logoutAction } from '@/actions/authActions';
 import { createOrder as createOrderAction } from '@/actions/orderActions';
 
@@ -76,6 +77,10 @@ interface AppContextType {
   rewardItems: RewardItem[];
   paymentSettings: PaymentSettings;
   aboutContent: AboutContent;
+  products: Product[];
+  blogPosts: typeof defaultBlogPosts;
+  updateAdminProducts: (products: Product[]) => void;
+  updateAdminBlogPosts: (posts: typeof defaultBlogPosts) => void;
   updateAboutContent: (content: Partial<AboutContent>) => void;
   updatePaymentSettings: (settings: Partial<PaymentSettings>) => void;
   addToCart: (product: Product, size: string, color: string, quantity?: number) => boolean;
@@ -109,6 +114,8 @@ const STORAGE_KEYS = {
   WISHLIST: 'kumo_wishlist',
   ABOUT: 'kumo_about',
   PAYMENTS: 'kumo_payments',
+  PRODUCTS: 'kumo_admin_products',
+  BLOG_POSTS: 'kumo_admin_blog',
 };
 
 // Default admin user
@@ -202,6 +209,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [rewardItems, setRewardItems] = useState<RewardItem[]>(defaultRewards);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(defaultPaymentSettings);
   const [aboutContent, setAboutContent] = useState<AboutContent>(defaultAboutContent);
+  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [blogPosts, setBlogPosts] = useState<typeof defaultBlogPosts>(defaultBlogPosts);
   const [initialized, setInitialized] = useState(false);
 
   // Initialize from localStorage and Server Session
@@ -228,6 +237,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRewardItems(getFromStorage(STORAGE_KEYS.REWARDS, defaultRewards));
     setPaymentSettings(getFromStorage(STORAGE_KEYS.PAYMENTS, defaultPaymentSettings));
     setAboutContent(getFromStorage(STORAGE_KEYS.ABOUT, defaultAboutContent));
+    setProducts(getFromStorage(STORAGE_KEYS.PRODUCTS, defaultProducts));
+    setBlogPosts(getFromStorage(STORAGE_KEYS.BLOG_POSTS, defaultBlogPosts));
     setInitialized(true);
   }, []);
 
@@ -513,6 +524,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showNotification('Đã xóa phần thưởng', 'info');
   }, [showNotification]);
 
+  const updateAdminProducts = useCallback((newProducts: Product[]) => {
+    setProducts(newProducts);
+    setToStorage(STORAGE_KEYS.PRODUCTS, newProducts);
+  }, []);
+
+  const updateAdminBlogPosts = useCallback((newPosts: typeof defaultBlogPosts) => {
+    setBlogPosts(newPosts);
+    setToStorage(STORAGE_KEYS.BLOG_POSTS, newPosts);
+  }, []);
+
   return (
     <AppContext.Provider value={{
       cart,
@@ -521,6 +542,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       orders,
       isLoggedIn,
       isAdmin,
+      products,
+      blogPosts,
       discountCode,
       discountAmount,
       notification,
@@ -543,6 +566,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       redeemPoints,
       earnPoints,
       updatePointsConfig,
+      updateAdminProducts,
+      updateAdminBlogPosts,
       addRewardItem,
       updateRewardItem,
       deleteRewardItem,

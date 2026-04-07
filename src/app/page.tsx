@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronDown, Zap, Star, Award } from 'lucide-react';
 import { motion, useInView } from 'motion/react';
-import { products, formatPrice } from './data/products';
-import { blogPosts } from './data/blog';
+import { formatPrice } from './data/products';
+import { useApp } from './context/AppContext';
 import { ProductCard } from './components/product/ProductCard';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 
@@ -65,9 +65,9 @@ function RevealSection({ children, className = '' }: { children: React.ReactNode
 }
 
 export default function HomePage() {
-  // Memoize the sale end date to prevent re-creation on every render
   const saleEnd = useMemo(() => new Date(Date.now() + 7 * 3600000 + 23 * 60000 + 47000), []);
   const countdown = useCountdown(saleEnd);
+  const { products, blogPosts } = useApp();
   const featuredProducts = products.slice(0, 4);
   const flashSaleProducts = products.filter(p => p.isFlashSale);
   const recentPosts = blogPosts.slice(0, 3);

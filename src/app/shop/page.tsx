@@ -4,8 +4,9 @@ import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { products, categories } from '../data/products';
+import { categories } from '../data/products';
 import { ProductCard } from '../components/product/ProductCard';
+import { useApp } from '../context/AppContext';
 
 type SortOption = 'newest' | 'bestseller' | 'price-asc' | 'price-desc';
 
@@ -21,6 +22,7 @@ const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 function ProductList() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
+  const { products } = useApp();
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState(0);

@@ -4,10 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Clock, User } from 'lucide-react';
 import { motion } from 'motion/react';
-import { blogPosts, blogCategories } from '../data/blog';
+import { blogCategories } from '../data/blog';
+import { useApp } from '../context/AppContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 export default function BlogPage() {
+  const { blogPosts } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
   const filtered = selectedCategory === 'Tất cả'
     ? blogPosts

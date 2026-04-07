@@ -78,7 +78,7 @@ const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb
 
 export default function AdminPage() {
   const navigate = useRouter();
-  const { isLoggedIn, isAdmin, orders, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings } = useApp();
+  const { isLoggedIn, isAdmin, orders, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, updateAdminProducts, updateAdminBlogPosts } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,9 +162,9 @@ export default function AdminPage() {
 
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
 
-  // Persist to localStorage
-  useEffect(() => { localStorage.setItem('kumo_admin_products', JSON.stringify(localProducts)); }, [localProducts]);
-  useEffect(() => { localStorage.setItem('kumo_admin_blog', JSON.stringify(localBlogPosts)); }, [localBlogPosts]);
+  // Persist to localStorage and Context
+  useEffect(() => { updateAdminProducts(localProducts); }, [localProducts, updateAdminProducts]);
+  useEffect(() => { updateAdminBlogPosts(localBlogPosts); }, [localBlogPosts, updateAdminBlogPosts]);
   useEffect(() => { localStorage.setItem('kumo_admin_flash', JSON.stringify(flashCampaigns)); }, [flashCampaigns]);
 
   // Sync real orders from context

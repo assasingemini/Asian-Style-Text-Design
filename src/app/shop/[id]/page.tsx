@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, ArrowRight, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { products, reviews, formatPrice } from '../../data/products';
+import { reviews, formatPrice } from '../../data/products';
 import { useApp } from '../../context/AppContext';
 import { ProductCard } from '../../components/product/ProductCard';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
@@ -13,7 +13,7 @@ import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useRouter();
-  const { addToCart, toggleWishlist, wishlist, isLoggedIn } = useApp();
+  const { addToCart, toggleWishlist, wishlist, isLoggedIn, products } = useApp();
 
   const product = products.find(p => p.id === id);
   const productReviews = reviews.filter(r => r.productId === id);
