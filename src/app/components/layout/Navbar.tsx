@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'motion/react';
 
 const navLinks = [
   { label: 'Cửa hàng', href: '/shop' },
-  { label: 'Về chúng tôi', href: '/about' },
   { label: 'Flash Sale', href: '/flash-sale' },
   { label: 'Ưu đãi', href: '/rewards' },
   { label: 'Tạp chí', href: '/blog' },
+  { label: 'Về chúng tôi', href: '/about' },
 ];
 
 export function Navbar() {

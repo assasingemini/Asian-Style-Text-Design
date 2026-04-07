@@ -157,11 +157,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="mt-8 p-5 bg-[#F8F6F2] border border-black/5">
-            <p className="text-[9px] tracking-[0.2em] uppercase text-black/40 mb-2">Tài khoản demo</p>
-            <p className="text-xs text-black/60 tracking-wide">Admin: <span className="text-black">admin@kumo.vn</span> / <span className="text-black">admin123</span></p>
-            <p className="text-xs text-black/60 tracking-wide mt-1">Hoặc đăng ký tài khoản mới</p>
-          </div>
         </motion.div>
       </div>
     </div>
