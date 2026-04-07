@@ -12,9 +12,10 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { products, formatPrice, Product } from '../data/products';
+import { products as dummyProducts, formatPrice, Product } from '../data/products';
 import { blogPosts } from '../data/blog';
 import { useApp, PointsRule, RewardItem, AboutContent } from '../context/AppContext';
+import { createProduct as createProductAction, updateProduct as updateProductAction, deleteProduct as deleteProductAction } from '@/actions/productActions';
 
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'users' | 'blog' | 'flash' | 'rewards' | 'points' | 'about' | 'payments';
 
@@ -78,7 +79,7 @@ const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb
 
 export default function AdminPage() {
   const navigate = useRouter();
-  const { isLoggedIn, isAdmin, orders, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, updateAdminProducts, updateAdminBlogPosts } = useApp();
+  const { isLoggedIn, isAdmin, orders, products, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, updateAdminProducts, updateAdminBlogPosts } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -153,17 +154,12 @@ export default function AdminPage() {
   });
   const [flashForm, setFlashForm] = useState({ name: '', products: 0, discount: 0 });
 
-  // Product state - persist to localStorage
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
-  const [localProducts, setLocalProducts] = useState<Product[]>(() => {
-    if (typeof window === 'undefined') return products;
-    try { const s = localStorage.getItem('kumo_admin_products'); return s ? JSON.parse(s) : products; } catch { return products; }
-  });
+  const localProducts = products;
 
   useEffect(() => { setEditingAbout(aboutContent); }, [aboutContent]);
 
-  // Persist to localStorage and Context
-  useEffect(() => { updateAdminProducts(localProducts); }, [localProducts, updateAdminProducts]);
+  // Persist to Context
   useEffect(() => { updateAdminBlogPosts(localBlogPosts); }, [localBlogPosts, updateAdminBlogPosts]);
   useEffect(() => { localStorage.setItem('kumo_admin_flash', JSON.stringify(flashCampaigns)); }, [flashCampaigns]);
 
@@ -219,9 +215,10 @@ export default function AdminPage() {
 
   // Product CRUD handlers
   const confirmDeleteProduct = (id: string) => setDeletingProduct(id);
-  const executeDeleteProduct = () => {
+  const executeDeleteProduct = async () => {
     if (deletingProduct) {
-      setLocalProducts(prev => prev.filter(p => p.id !== deletingProduct));
+      await deleteProductAction(deletingProduct);
+      updateAdminProducts(products.filter(p => p.id !== deletingProduct));
       setDeletingProduct(null);
     }
   };
@@ -247,21 +244,24 @@ export default function AdminPage() {
     setShowAddProduct(true);
   };
 
-  const saveProduct = () => {
+  const saveProduct = async () => {
     if (editingProduct) {
-      setLocalProducts(prev => prev.map(p => p.id === editingProduct ? {
-        ...p, name: productForm.name, price: productForm.price,
+      const updatedData = {
+        name: productForm.name, price: productForm.price,
         originalPrice: productForm.originalPrice || undefined,
         stock: productForm.stock, category: productForm.category,
         subcategory: productForm.subcategory || productForm.category,
         description: productForm.description,
-        images: productForm.images.filter(Boolean).length > 0 ? productForm.images.filter(Boolean) : p.images,
+        images: productForm.images.filter(Boolean).length > 0 ? productForm.images.filter(Boolean) : undefined,
         sizes: productForm.sizes, colors: productForm.colors,
         isNew: productForm.isNew, isBestseller: productForm.isBestseller,
-      } : p));
+      };
+      const res = await updateProductAction(editingProduct, updatedData);
+      if (res.success && res.product) {
+        updateAdminProducts(products.map(p => p.id === editingProduct ? { ...p, ...(res.product as any) } : p));
+      }
     } else {
-      const newProduct: Product = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      const newProductData = {
         name: productForm.name || 'Sản phẩm mới', price: productForm.price,
         originalPrice: productForm.originalPrice || undefined,
         stock: productForm.stock, category: productForm.category,
@@ -269,10 +269,12 @@ export default function AdminPage() {
         description: productForm.description || '', details: [],
         images: productForm.images.filter(Boolean).length > 0 ? productForm.images.filter(Boolean) : ['https://images.unsplash.com/photo-1683642765591-2370edc15193?w=400'],
         sizes: productForm.sizes, colors: productForm.colors,
-        rating: 0, reviewCount: 0, tags: [],
         isNew: productForm.isNew, isBestseller: productForm.isBestseller,
       };
-      setLocalProducts(prev => [newProduct, ...prev]);
+      const res = await createProductAction(newProductData);
+      if (res.success && res.product) {
+        updateAdminProducts([res.product as any, ...products]);
+      }
     }
     setShowAddProduct(false);
     setEditingProduct(null);

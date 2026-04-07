@@ -4,6 +4,7 @@ import { AboutContent, defaultAboutContent } from '../data/aboutDefaults';
 import { blogPosts as defaultBlogPosts } from '../data/blog';
 import { login as loginAction, registerUser as registerAction, getSession as getSessionAction, logout as logoutAction } from '@/actions/authActions';
 import { createOrder as createOrderAction } from '@/actions/orderActions';
+import { getProducts as getProductsAction } from '@/actions/productActions';
 
 export interface CartItem {
   product: Product;
@@ -237,9 +238,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRewardItems(getFromStorage(STORAGE_KEYS.REWARDS, defaultRewards));
     setPaymentSettings(getFromStorage(STORAGE_KEYS.PAYMENTS, defaultPaymentSettings));
     setAboutContent(getFromStorage(STORAGE_KEYS.ABOUT, defaultAboutContent));
-    setProducts(getFromStorage(STORAGE_KEYS.PRODUCTS, defaultProducts));
     setBlogPosts(getFromStorage(STORAGE_KEYS.BLOG_POSTS, defaultBlogPosts));
-    setInitialized(true);
+
+    // Fetch products from Real Database
+    getProductsAction().then((dbProducts) => {
+      if (dbProducts && dbProducts.length > 0) {
+        setProducts(dbProducts as any);
+      } else {
+        setProducts(defaultProducts);
+      }
+      setInitialized(true);
+    });
   }, []);
 
   // Persist cart
@@ -526,7 +535,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateAdminProducts = useCallback((newProducts: Product[]) => {
     setProducts(newProducts);
-    setToStorage(STORAGE_KEYS.PRODUCTS, newProducts);
   }, []);
 
   const updateAdminBlogPosts = useCallback((newPosts: typeof defaultBlogPosts) => {

@@ -74,3 +74,68 @@ export async function getCategories() {
     return [];
   }
 }
+
+export async function createProduct(data: any) {
+  try {
+    const product = await prisma.product.create({
+      data: {
+        name: data.name,
+        price: data.price,
+        originalPrice: data.originalPrice,
+        category: data.category,
+        subcategory: data.subcategory,
+        description: data.description,
+        details: data.details,
+        images: data.images,
+        sizes: data.sizes,
+        colors: data.colors,
+        isNew: data.isNew,
+        isBestseller: data.isBestseller,
+        stock: data.stock,
+      },
+    });
+    return { success: true, product };
+  } catch (error) {
+    console.error("Error creating product:", error);
+    return { success: false, error: "Lỗi thêm sản phẩm" };
+  }
+}
+
+export async function updateProduct(id: string, data: any) {
+  try {
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name: data.name,
+        price: data.price,
+        originalPrice: data.originalPrice,
+        category: data.category,
+        subcategory: data.subcategory,
+        description: data.description,
+        details: data.details,
+        images: data.images,
+        sizes: data.sizes,
+        colors: data.colors,
+        isNew: data.isNew,
+        isBestseller: data.isBestseller,
+        stock: data.stock,
+      },
+    });
+    return { success: true, product };
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return { success: false, error: "Lỗi cập nhật sản phẩm" };
+  }
+}
+
+export async function deleteProduct(id: string) {
+  try {
+    await prisma.product.delete({
+      where: { id },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return { success: false, error: "Lỗi xóa sản phẩm" };
+  }
+}
