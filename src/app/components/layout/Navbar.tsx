@@ -100,11 +100,6 @@ export function Navbar() {
                 {/* Wishlist */}
                 <Link href="/account" className={`${textColor} transition-all duration-300 hover:opacity-60 relative`}>
                   <Heart size={18} />
-                  {wishlist.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
-                      {wishlist.length}
-                    </span>
-                  )}
                 </Link>
 
                 {/* User */}
