@@ -79,7 +79,7 @@ const labelCls = "block text-[10px] tracking-[0.25em] uppercase text-black/50 mb
 
 export default function AdminPage() {
   const navigate = useRouter();
-  const { isLoggedIn, isAdmin, orders, products, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, updateAdminProducts, updateAdminBlogPosts } = useApp();
+  const { isLoggedIn, isAdmin, orders, products, pointsConfig, rewardItems, updatePointsConfig, addRewardItem, updateRewardItem, deleteRewardItem, aboutContent, updateAboutContent, paymentSettings, updatePaymentSettings, updateAdminProducts, updateAdminBlogPosts, showNotification } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,8 +217,13 @@ export default function AdminPage() {
   const confirmDeleteProduct = (id: string) => setDeletingProduct(id);
   const executeDeleteProduct = async () => {
     if (deletingProduct) {
-      await deleteProductAction(deletingProduct);
-      updateAdminProducts(products.filter(p => p.id !== deletingProduct));
+      const res = await deleteProductAction(deletingProduct);
+      if (res.success) {
+        updateAdminProducts(products.filter(p => p.id !== deletingProduct));
+        showNotification('Đã xóa sản phẩm thành công', 'success');
+      } else {
+        showNotification(res.error || 'Lỗi khi xóa sản phẩm', 'error');
+      }
       setDeletingProduct(null);
     }
   };
